@@ -287,6 +287,7 @@ class SecretEnv1:
         instance = wrapper.lib.secret_env_1_from_random_state()
         return SecretEnv1(wrapper, instance)
 
+
 class SecretEnv2Wrapper:
     def __init__(self):
         self.lib = ctypes.cdll.LoadLibrary(lib_path)

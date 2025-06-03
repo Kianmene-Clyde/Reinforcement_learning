@@ -1,19 +1,39 @@
-def policy_iteration(env, gamma=0.99, theta=1e-4):
+def policy_iteration(env, gamma=0.99, theta=1e-4, max_iterations=1000, verbose=False):
+    """
+    Policy Iteration for (potentially stochastic) environments.
+    env must implement:
+        - env.get_states(): list of all states
+        - env.get_actions(state): list of possible actions in a state
+        - env.get_transitions(state, action): list of (probability, next_state, reward)
+        - env.is_terminal(state): True if state is terminal
+    """
     states = env.get_states()
-    V = {s: 0 for s in states}
-    policy = {s: [env.get_actions(s)[0]] for s in states if env.get_actions(s)}
+    V = {s: 0.0 for s in states}
+    policy = {}
 
-    while True:
+    # Init policy randomly
+    for s in states:
+        if not env.is_terminal(s):
+            actions = env.get_actions(s)
+            if actions:
+                policy[s] = actions[0]
+
+    for iteration in range(max_iterations):
+        if verbose:
+            print(f"=== Iteration {iteration} ===")
+
         # --- Policy Evaluation ---
         while True:
-            delta = 0
+            delta = 0.0
             for s in states:
-                if s in env.terminal_states:
+                if env.is_terminal(s):
                     continue
                 v = V[s]
-                a = policy[s][0]
-                next_s, r = env.transition(s, a)
-                V[s] = r + gamma * V[next_s]
+                a = policy[s]
+                V[s] = sum([
+                    p * (r + gamma * V[s_])
+                    for (p, s_, r) in env.get_transitions(s, a)
+                ])
                 delta = max(delta, abs(v - V[s]))
             if delta < theta:
                 break
@@ -21,19 +41,24 @@ def policy_iteration(env, gamma=0.99, theta=1e-4):
         # --- Policy Improvement ---
         policy_stable = True
         for s in states:
-            if s in env.terminal_states:
+            if env.is_terminal(s):
                 continue
-            old_action = policy[s][0]
+            old_action = policy[s]
+            actions = env.get_actions(s)
             action_values = {}
-            for a in env.get_actions(s):
-                next_s, r = env.transition(s, a)
-                action_values[a] = r + gamma * V[next_s]
+            for a in actions:
+                action_values[a] = sum([
+                    p * (r + gamma * V[s_])
+                    for (p, s_, r) in env.get_transitions(s, a)
+                ])
             best_action = max(action_values, key=action_values.get)
-            policy[s] = [best_action]
+            policy[s] = best_action
             if old_action != best_action:
                 policy_stable = False
 
         if policy_stable:
+            if verbose:
+                print("Politique convergente trouvée.")
             break
 
     return policy, V
