@@ -1,7 +1,7 @@
 import pygame
 import sys
 import time
-from agents.dynamic_programming import policy_iteration
+from agents.dynamic_programming import policy_iteration, value_iteration
 from environments.monty_hall_lv1_env import MontyHallEnv
 
 WHITE, BLACK, BLUE, GREEN, RED, GREY = (255, 255, 255), (0, 0, 0), (50, 50, 255), (50, 200, 50), (255, 80, 80), (200,
@@ -29,7 +29,9 @@ class MontyHallRunner:
 
         if self.agent_name == "Policy Iteration":
             self.policy, _ = policy_iteration(self.env, gamma=0.99)
-            print("Politique apprise :", self.policy)
+
+        elif self.agent_name == "Value Iteration":
+            self.policy, _ = value_iteration(self.env)
 
         if mode == "1":
             self._run_agent()

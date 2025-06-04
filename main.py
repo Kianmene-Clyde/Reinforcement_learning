@@ -4,7 +4,6 @@ from environments.grid_world_runner import GridWorldRunner
 from environments.line_world_runner import LineWorldRunner
 from environments.monty_hall_lv1_runner import MontyHallRunner
 from environments.monty_hall_lv2_runner import MontyHallRunnerLv2
-from environments.rps_game_runner import RPSGameRunner
 
 pygame.init()
 WIDTH, HEIGHT = 700, 600
@@ -21,7 +20,7 @@ AGENTS = [
 ]
 
 ENVS = [
-    "LineWorld", "GridWorld", "Monty Hall lvl 1", "Monty Hall lvl 2", "RPS"
+    "LineWorld", "GridWorld", "Monty Hall lvl 1", "Monty Hall lvl 2"
 ]
 
 selected_agent = 0
@@ -64,37 +63,32 @@ while running:
 # === Lancement logique ===
 agent_name = AGENTS[selected_agent]
 env_id = selected_env
-pygame.display.quit()
+
+if env_id != 4:
+    pygame.display.quit()
 
 if env_id == 0:
-    if agent_name == "Policy Iteration":
+    if agent_name in ["Policy Iteration", "Value Iteration"]:
         LineWorldRunner(agent_name=agent_name).run()
     else:
         print("Agent non encore supporté pour LineWorld.")
 
 elif env_id == 1:
-    if agent_name == "Policy Iteration":
+    if agent_name in ["Policy Iteration", "Value Iteration"]:
         GridWorldRunner(agent_name=agent_name).run()
     else:
         print("Agent non encore supporté pour GridWorld.")
 
 elif env_id == 2:
-    if agent_name == "Policy Iteration":
+    if agent_name in ["Policy Iteration", "Value Iteration"]:
         MontyHallRunner(agent_name=agent_name).run()
     else:
         print("Agent non encore supporté pour Monty Hall lvl 1.")
 
 elif env_id == 3:
-    if agent_name == "Policy Iteration":
+    if agent_name in ["Policy Iteration", "Value Iteration"]:
         MontyHallRunnerLv2(agent_name=agent_name).run()
     else:
         print("Agent non encore supporté pour Monty Hall lvl 2.")
-
-elif env_id == 4:
-    if agent_name == "Policy Iteration":
-        RPSGameRunner(agent_name=agent_name).run()
-    else:
-        print("Agent non encore supporté pour RPS.")
-
 else:
     print("Environnement non reconnu.")

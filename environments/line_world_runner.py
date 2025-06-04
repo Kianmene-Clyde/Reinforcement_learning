@@ -1,6 +1,6 @@
 import pygame
 import sys
-from agents.dynamic_programming import policy_iteration
+from agents.dynamic_programming import policy_iteration, value_iteration
 from environments.line_world_env import LineWorldEnv
 
 CELL_SIZE = 100
@@ -32,6 +32,9 @@ class LineWorldRunner:
 
         if self.agent_name == "Policy Iteration":
             self.policy, _ = policy_iteration(self.env, gamma=0.99)
+
+        elif self.agent_name == "Value Iteration":
+            self.policy, _ = value_iteration(self.env)
 
         if mode == "1":
             self._run_agent()

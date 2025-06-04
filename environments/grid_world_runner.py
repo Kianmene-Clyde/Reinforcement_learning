@@ -1,6 +1,6 @@
 import pygame
 import sys
-from agents.dynamic_programming import policy_iteration
+from agents.dynamic_programming import policy_iteration, value_iteration
 from environments.grid_world_env import GridWorldEnv
 
 CELL_SIZE = 80
@@ -29,7 +29,9 @@ class GridWorldRunner:
 
         if self.agent_name == "Policy Iteration":
             self.policy, _ = policy_iteration(self.env, gamma=0.99)
-            print("Politique apprise :", self.policy)
+
+        elif self.agent_name == "Value Iteration":
+            self.policy, _ = value_iteration(self.env)
 
         if mode == "1":
             self._run_agent()

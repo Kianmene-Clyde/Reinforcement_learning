@@ -1,48 +1,78 @@
 import random
+from itertools import product
 
 
 class RPSGameEnv:
     def __init__(self):
-        self.choices = [0, 1, 2]  # 0 = Pierre, 1 = Feuille, 2 = Ciseaux
-        self.states = [(a, b) for a in self.choices for b in self.choices]
-        self.start_state = None
-
-    def get_states(self):
-        return self.states
-
-    def get_actions(self, state):
-        return self.choices
-
-    def is_terminal(self, state):
-        return False
+        self.reset()
 
     def reset(self):
-        self.start_state = random.choice(self.states)
-        return self.start_state
+        self.state = None
+        self.round = 1
+        self.done = False
+        return self.state
+
+    def get_actions(self, state):
+        if state == "TERMINAL":
+            return []
+        return [0, 1, 2]  # Pierre, Feuille, Ciseaux
+
+    def is_terminal(self, state):
+        return state == "TERMINAL"
 
     def transition(self, state, action):
-        player_first, enemy_first = state
-        counter = (player_first + 1) % 3
-        enemy_probs = [0.15, 0.15, 0.15]
-        enemy_probs[counter] = 0.7
-        enemy_action = random.choices(self.choices, weights=enemy_probs)[0]
+        if self.done:
+            return "TERMINAL", 0.0
 
-        # Résultat
-        if action == enemy_action:
-            reward = 0.0
-        elif (action - enemy_action) % 3 == 1:
-            reward = 1.0
+        if self.round == 1:
+            enemy_action = 0  # déterministe pour les algos DP
+            next_state = (action, enemy_action)
+            reward = self.get_reward(action, enemy_action)
+            self.round = 2
+            self.state = next_state
+            return next_state, reward
         else:
-            reward = -1.0
+            counter = self.counter_action(state[0])
+            enemy_probs = [0.15, 0.15, 0.15]
+            enemy_probs[counter] = 0.7
+            enemy_action = counter  # idem, déterministe pour DP
 
-        return (action, enemy_action), reward
+            reward = self.get_reward(action, enemy_action)
+            self.state = "TERMINAL"
+            self.done = True
+            return "TERMINAL", reward
+
+    def get_reward(self, player, enemy):
+        if player == enemy:
+            return 0.0
+        elif (player == 0 and enemy == 2) or (player == 1 and enemy == 0) or (player == 2 and enemy == 1):
+            return 1.0
+        else:
+            return -1.0
+
+    def counter_action(self, action):
+        return (action + 1) % 3
+
+    def get_states(self):
+        return [None] + list(product([0, 1, 2], repeat=2)) + ["TERMINAL"]
 
     def get_transitions(self, state, action):
-        next_state, reward = self.transition(state, action)
-        return [(1.0, next_state, reward)]
+        if state == "TERMINAL":
+            return []
 
-    def get_reward(self, state):
-        return 0.0
+        if state is None:
+            enemy_action = 0  # pour simplifier, comme si toujours même ennemi
+            next_state = (action, enemy_action)
+            reward = self.get_reward(action, enemy_action)
+            return [(1.0, next_state, reward)]
 
-    def step(self, state, action):
-        return self.transition(state, action)
+        # round 2
+        player_first = state[0]
+        counter = self.counter_action(player_first)
+        enemy_probs = [0.15, 0.15, 0.15]
+        enemy_probs[counter] = 0.7
+        transitions = []
+        for enemy_action, prob in enumerate(enemy_probs):
+            reward = self.get_reward(action, enemy_action)
+            transitions.append((prob, "TERMINAL", reward))
+        return transitions
