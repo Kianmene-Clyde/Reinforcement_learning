@@ -21,7 +21,6 @@ class RPSGameEnv:
         return self.start_state
 
     def transition(self, state, action):
-        # Joueur joue `action`, l'ennemi réagit avec une proba biaisée si possible
         player_first, enemy_first = state
         counter = (player_first + 1) % 3
         enemy_probs = [0.15, 0.15, 0.15]
@@ -39,9 +38,11 @@ class RPSGameEnv:
         return (action, enemy_action), reward
 
     def get_transitions(self, state, action):
-        # Approximation par un seul tirage (pas rigoureusement stochastique pour policy_iteration)
         next_state, reward = self.transition(state, action)
         return [(1.0, next_state, reward)]
 
     def get_reward(self, state):
-        return 0.0  # non utilisé dans notre cas
+        return 0.0
+
+    def step(self, state, action):
+        return self.transition(state, action)

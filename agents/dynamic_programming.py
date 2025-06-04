@@ -62,3 +62,36 @@ def policy_iteration(env, gamma=0.99, theta=1e-4, max_iterations=1000, verbose=F
             break
 
     return policy, V
+
+
+def value_iteration(env, gamma=0.99, theta=1e-6):
+    V = {s: 0.0 for s in env.get_states()}
+    policy = {}
+
+    while True:
+        delta = 0
+        for s in env.get_states():
+            if env.is_terminal(s):
+                continue
+            v = V[s]
+            V[s] = max(
+                sum(prob * (reward + gamma * V[s_prime])
+                    for prob, s_prime, reward in env.get_transitions(s, a))
+                for a in env.get_actions(s)
+            )
+            delta = max(delta, abs(v - V[s]))
+        if delta < theta:
+            break
+
+    for s in env.get_states():
+        if env.is_terminal(s):
+            continue
+        policy[s] = max(
+            env.get_actions(s),
+            key=lambda a: sum(
+                prob * (reward + gamma * V[s_prime])
+                for prob, s_prime, reward in env.get_transitions(s, a)
+            )
+        )
+
+    return V, policy
