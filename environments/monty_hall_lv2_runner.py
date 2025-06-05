@@ -1,8 +1,15 @@
 import pygame
 import sys
-import time
 from agents.dynamic_programming import policy_iteration, value_iteration
+from agents.planning_methods import dyna_q, dyna_q_plus
+from agents.temporal_difference_methods import sarsa, expected_sarsa, q_learning
+from agents.monte_carlo_methods import (
+    on_policy_first_visit_mc_control,
+    monte_carlo_es,
+    off_policy_mc_control
+)
 from environments.monty_hall_lv2_env import MontyHallEnvLv2
+from Utils.save_load_policy import save_policy, load_policy
 
 WHITE, BLACK, GREEN, RED, GREY = (255, 255, 255), (0, 0, 0), (50, 200, 50), (255, 80, 80), (200, 200, 200)
 WIDTH, HEIGHT = 800, 400
@@ -15,21 +22,61 @@ class MontyHallRunnerLv2:
         self.env = MontyHallEnvLv2()
         self.agent_name = agent_name
         self.policy = {}
+        self.results = []
+        self.hyperparams = {}
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.font = pygame.font.SysFont("Arial", 22)
         pygame.display.set_caption(f"Monty Hall LV2 - {self.agent_name}")
 
     def run(self):
+        print(f"Bienvenue dans Monty Hall LV2 avec l'agent '{self.agent_name}'")
+        print("Souhaitez-vous :")
+        print("1 - Charger une politique existante")
+        print("2 - Apprendre une nouvelle politique")
+        choix = input("Votre choix (1/2) : ").strip()
+
+        filename = f"montyhall_lv2_{self.agent_name.replace(' ', '_').lower()}.pkl"
+
+        if choix == "1":
+            try:
+                self.policy = load_policy(filename)
+                self.hyperparams = {}  # Valeur vide si on ne les connaît pas
+            except FileNotFoundError as e:
+                print(e)
+                return
+        else:
+            agent_func_map = {
+                "Policy Iteration": policy_iteration,
+                "Value Iteration": value_iteration,
+                "Dyna Q": dyna_q,
+                "Dyna Q+": dyna_q_plus,
+                "Sarsa": sarsa,
+                "Expected Sarsa": expected_sarsa,
+                "First visit Monte Carlo": on_policy_first_visit_mc_control,
+                "Monte Carlo ES": monte_carlo_es,
+                "Off-policy Monte Carlo": off_policy_mc_control,
+                "Q Learning": q_learning,
+            }
+
+            if self.agent_name not in agent_func_map:
+                print(f"⚠️ Agent '{self.agent_name}' non reconnu.")
+                return
+
+            try:
+                agent_func = agent_func_map[self.agent_name]
+                self.policy, self.hyperparams = agent_func(self.env)
+            except Exception as e:
+                print(f"Erreur lors de l'exécution de l'agent {self.agent_name} : {e}")
+                return
+
+            print("Politique entraînée. Souhaitez-vous la sauvegarder ? (O/N)")
+            if input().strip().lower() == "o":
+                save_policy(self.policy, filename)
+
         print("Choisissez un mode :")
         print("1 - Agent automatique")
         print("2 - Joueur humain")
         mode = input("Mode : ").strip()
-
-        if self.agent_name == "Policy Iteration":
-            self.policy, _ = policy_iteration(self.env, gamma=0.99)
-
-        elif self.agent_name == "Value Iteration":
-            self.policy, _ = value_iteration(self.env)
 
         if mode == "1":
             self._run_agent()
@@ -73,13 +120,13 @@ class MontyHallRunnerLv2:
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit();
+                    pygame.quit()
                     sys.exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:
                         return
                     elif event.key == pygame.K_ESCAPE:
-                        pygame.quit();
+                        pygame.quit()
                         sys.exit()
 
     def _run_agent(self):
@@ -90,9 +137,17 @@ class MontyHallRunnerLv2:
             while not self.env.is_terminal(state):
                 self._draw(state, reward, f"Épisode {episode}")
                 pygame.time.delay(1000)
-                action = self.policy[state]
+                action = self.policy.get(state, 0)
                 state, reward = self.env.step(state, action)
             self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
+            self.results.append(reward)
+            export_results(
+                agent_name=self.agent_name,
+                env_name="MontyHall LV2",
+                stats={"Score": reward, "Épisode": episode},
+                hyperparams=self.hyperparams,
+                filename="montyhall_lv2_results.xlsx"
+            )
             episode += 1
             self._wait_for_restart()
 
@@ -105,11 +160,11 @@ class MontyHallRunnerLv2:
                 self._draw(state, reward, f"Épisode {episode} - Choisissez une action")
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        pygame.quit();
+                        pygame.quit()
                         sys.exit()
                     elif event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_ESCAPE:
-                            pygame.quit();
+                            pygame.quit()
                             sys.exit()
                         actions = self.env.get_actions(state)
                         if event.unicode.isdigit():

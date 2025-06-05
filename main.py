@@ -64,31 +64,15 @@ while running:
 agent_name = AGENTS[selected_agent]
 env_id = selected_env
 
-if env_id != 4:
-    pygame.display.quit()
+pygame.display.quit()
 
 if env_id == 0:
-    if agent_name in ["Policy Iteration", "Value Iteration"]:
-        LineWorldRunner(agent_name=agent_name).run()
-    else:
-        print("Agent non encore supporté pour LineWorld.")
-
+    LineWorldRunner(agent_name=agent_name).run()
 elif env_id == 1:
-    if agent_name in ["Policy Iteration", "Value Iteration"]:
-        GridWorldRunner(agent_name=agent_name).run()
-    else:
-        print("Agent non encore supporté pour GridWorld.")
-
+    GridWorldRunner(agent_name=agent_name).run()
 elif env_id == 2:
-    if agent_name in ["Policy Iteration", "Value Iteration"]:
-        MontyHallRunner(agent_name=agent_name).run()
-    else:
-        print("Agent non encore supporté pour Monty Hall lvl 1.")
-
+    MontyHallRunner(agent_name=agent_name).run()
 elif env_id == 3:
-    if agent_name in ["Policy Iteration", "Value Iteration"]:
-        MontyHallRunnerLv2(agent_name=agent_name).run()
-    else:
-        print("Agent non encore supporté pour Monty Hall lvl 2.")
+    MontyHallRunnerLv2(agent_name=agent_name).run()
 else:
     print("Environnement non reconnu.")

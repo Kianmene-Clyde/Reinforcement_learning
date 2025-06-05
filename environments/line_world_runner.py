@@ -1,6 +1,15 @@
 import pygame
 import sys
+from Utils.export_results_to_xlsx import export_results
 from agents.dynamic_programming import policy_iteration, value_iteration
+from agents.planning_methods import dyna_q, dyna_q_plus
+from agents.temporal_difference_methods import sarsa, expected_sarsa, q_learning
+from agents.monte_carlo_methods import (
+    on_policy_first_visit_mc_control,
+    monte_carlo_es,
+    off_policy_mc_control
+)
+from Utils.save_load_policy import save_policy, load_policy
 from environments.line_world_env import LineWorldEnv
 
 CELL_SIZE = 100
@@ -18,6 +27,19 @@ class LineWorldRunner:
         pygame.display.set_caption(f"Line World - {self.agent_name}")
         self._prepare_env()
 
+        self.hyperparams_map = {
+            "Policy Iteration": {"gamma": 0.99},
+            "Value Iteration": {"gamma": 0.99},
+            "Dyna Q": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5},
+            "Dyna Q+": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5, "kappa": 0.001},
+            "Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "Expected Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "First visit Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1},
+            "Monte Carlo ES": {"episodes": 1000},
+            "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1}
+        }
+
     def _prepare_env(self):
         self.env.get_states = lambda: self.env.states
         self.env.get_actions = lambda s: [0, 1] if s not in self.env.terminal_states else []
@@ -25,16 +47,55 @@ class LineWorldRunner:
         self.env.get_transitions = lambda s, a: [(1.0, *self.env.transition(s, a))]
 
     def run(self):
+        print(f"Bienvenue dans l'environnement Line World avec l'agent '{self.agent_name}'")
+        print("Souhaitez-vous :")
+        print("1 - Charger une politique existante")
+        print("2 - Apprendre une nouvelle politique")
+        choix = input("Votre choix (1/2) : ").strip()
+
+        if choix == "1":
+            try:
+                filename = f"lineworld_{self.agent_name.replace(' ', '_').lower()}.pkl"
+                self.policy = load_policy(filename)
+            except FileNotFoundError as e:
+                print(e)
+                return
+        else:
+            agent_func_map = {
+                "Policy Iteration": policy_iteration,
+                "Value Iteration": value_iteration,
+                "Dyna Q": dyna_q,
+                "Dyna Q+": dyna_q_plus,
+                "Sarsa": sarsa,
+                "Expected Sarsa": expected_sarsa,
+                "First visit Monte Carlo": on_policy_first_visit_mc_control,
+                "Monte Carlo ES": monte_carlo_es,
+                "Off-policy Monte Carlo": off_policy_mc_control,
+                "Q Learning": q_learning,
+            }
+
+            if self.agent_name not in agent_func_map:
+                print(f"⚠️ Agent '{self.agent_name}' non reconnu.")
+                return
+
+            agent_func = agent_func_map[self.agent_name]
+            hyperparams = self.hyperparams_map.get(self.agent_name, {})
+
+            try:
+                self.policy, _ = agent_func(self.env, **hyperparams)
+            except Exception as e:
+                print(f"Erreur lors de l'exécution de l'agent {self.agent_name} : {e}")
+                return
+
+            print("Politique entraînée. Souhaitez-vous la sauvegarder ? (O/N)")
+            if input().strip().lower() == "o":
+                filename = f"lineworld_{self.agent_name.replace(' ', '_').lower()}.pkl"
+                save_policy(self.policy, filename)
+
         print("Choisissez un mode :")
         print("1 - Agent automatique")
         print("2 - Joueur humain")
         mode = input("Mode : ").strip()
-
-        if self.agent_name == "Policy Iteration":
-            self.policy, _ = policy_iteration(self.env, gamma=0.99)
-
-        elif self.agent_name == "Value Iteration":
-            self.policy, _ = value_iteration(self.env)
 
         if mode == "1":
             self._run_agent()
@@ -100,6 +161,15 @@ class LineWorldRunner:
                 total_reward += reward
                 self.env.agent_pos = state
             self._draw(self.policy, total_reward, episode, "✅ Terminé - appuyez sur R")
+
+            # ✅ EXPORT des résultats
+            export_results(
+                agent_name=self.agent_name,
+                env_name="LineWorld",
+                stats={"score_total": total_reward, "nb_episodes": episode},
+                hyperparams=self.hyperparams_map.get(self.agent_name, {})
+            )
+
             episode += 1
             self._wait_for_restart()
 

@@ -1,9 +1,6 @@
-import json
 import os
 import time
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from datetime import datetime
 from itertools import product
 from tqdm import tqdm
@@ -22,6 +19,9 @@ from environments.grid_world_env import GridWorldEnv
 from environments.monty_hall_lv1_env import MontyHallEnv
 from environments.monty_hall_lv2_env import MontyHallEnvLv2
 from environments.rps_game_env import RPSGameEnv
+
+# === Fonctions utilitaires ===
+from Utils.save_load_policy import save_policy
 
 # === Liste des configurations ===
 AGENTS = {
@@ -56,7 +56,9 @@ HYPERPARAM_GRID = {
 }
 
 OUTPUT_DIR = "Reports"
+POLICY_DIR = os.path.join(OUTPUT_DIR, "Policies")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(POLICY_DIR, exist_ok=True)
 all_results = []
 
 
@@ -124,14 +126,8 @@ def run_experiments():
 
                     mean_score, scores = evaluate_policy(env, policy)
 
-                    report = {
-                        "agent": agent_name,
-                        "environment": env_name,
-                        "mean_score": mean_score,
-                        "scores": scores,
-                        "params": kwargs,
-                        "timestamp": datetime.now().isoformat()
-                    }
+                    filename = f"policy_{env_name}_{agent_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
+                    save_policy(policy, os.path.join(POLICY_DIR, filename))
 
                     all_results.append({
                         "agent": agent_name,
@@ -149,31 +145,10 @@ def run_experiments():
     with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
         df.to_excel(writer, sheet_name="Résultats", index=False)
 
-        best_params = df.loc[df.groupby(["agent", "env"])['mean_score'].idxmax()]
+        best_params = df.loc[df.groupby(["agent", "env"])["mean_score"].idxmax()]
         best_params.to_excel(writer, sheet_name="BestParams", index=False)
 
-    # Graphes par agent
-    for agent in df['agent'].unique():
-        plt.figure(figsize=(10, 4))
-        agent_df = df[df['agent'] == agent]
-        sns.boxplot(data=agent_df, x='env', y='mean_score')
-        plt.title(f"Performance de {agent}")
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.savefig(os.path.join(OUTPUT_DIR, f"plot_{agent}.png"))
-        plt.close()
-
-    # Heatmap des scores moyens pour Q-learning (exemple)
-    q_df = df[df['agent'] == 'q_learning']
-    if not q_df.empty:
-        pivot = q_df.pivot_table(index='alpha', columns='epsilon', values='mean_score', aggfunc='mean')
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(pivot, annot=True, fmt=".2f", cmap="coolwarm")
-        plt.title("Heatmap Q-learning (score moyen)")
-        plt.savefig(os.path.join(OUTPUT_DIR, "heatmap_q_learning.png"))
-        plt.close()
-
-    print("\n📊 Résumé global exporté en .xlsx avec graphiques")
+    print("\n📊 Résumé global exporté en .xlsx avec toutes les politiques sauvegardées.")
 
 
 if __name__ == "__main__":

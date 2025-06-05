@@ -1,7 +1,10 @@
 import pygame
 import sys
 import random
-
+from datetime import datetime
+import pandas as pd
+import os
+from Utils.save_load_policy import save_policy, load_policy
 from agents.dynamic_programming import policy_iteration, value_iteration
 from agents.monte_carlo_methods import monte_carlo_es, off_policy_mc_control, on_policy_first_visit_mc_control
 from agents.temporal_difference_methods import sarsa, expected_sarsa, q_learning
@@ -19,6 +22,21 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Rock Paper Scissors - Score Cumulé")
 font = pygame.font.SysFont("Arial", 24)
+
+
+def export_results(agent_name, stats, hyperparams, filename="rps_results.xlsx"):
+    data = {
+        "Date": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
+        "Agent": [agent_name],
+        **{f"Stat - {k}": [v] for k, v in stats.items()},
+        **{f"Hyper - {k}": [v] for k, v in hyperparams.items()}
+    }
+    df = pd.DataFrame(data)
+    if os.path.exists(filename):
+        existing = pd.read_excel(filename)
+        df = pd.concat([existing, df], ignore_index=True)
+    df.to_excel(filename, index=False)
+    print(f"📁 Résultats exportés vers {filename}")
 
 
 def draw_message(text):
@@ -100,22 +118,24 @@ def show_agent_menu():
 def rps_game(agent_name="Joueur Humain"):
     env = RPSGameEnv()
     agent_funcs = {
-        "Policy Iteration": policy_iteration,
-        "Value Iteration": value_iteration,
-        "Dyna Q": dyna_q,
-        "Dyna Q+": dyna_q_plus,
-        "Sarsa": sarsa,
-        "Expected Sarsa": expected_sarsa,
-        "First Visit MC": on_policy_first_visit_mc_control,
-        "MC ES": monte_carlo_es,
-        "Off-policy MC": off_policy_mc_control,
-        "Q Learning": q_learning
+        "Policy Iteration": (policy_iteration, {}),
+        "Value Iteration": (value_iteration, {}),
+        "Dyna Q": (dyna_q, {"planning_steps": 10}),
+        "Dyna Q+": (dyna_q_plus, {"planning_steps": 10, "kappa": 0.01}),
+        "Sarsa": (sarsa, {"alpha": 0.1, "epsilon": 0.1, "episodes": 1000}),
+        "Expected Sarsa": (expected_sarsa, {"alpha": 0.1, "epsilon": 0.1, "episodes": 1000}),
+        "First Visit MC": (on_policy_first_visit_mc_control, {"epsilon": 0.1, "episodes": 1000}),
+        "MC ES": (monte_carlo_es, {"episodes": 1000}),
+        "Off-policy MC": (off_policy_mc_control, {"episodes": 1000}),
+        "Q Learning": (q_learning, {"alpha": 0.1, "epsilon": 0.1, "episodes": 1000})
     }
     if agent_name in agent_funcs:
-        policy, _ = agent_funcs[agent_name](env)
+        agent_func, params = agent_funcs[agent_name]
+        policy, _ = agent_func(env, **params)
         agent_mode = True
     else:
         policy = None
+        params = {}
         agent_mode = False
 
     stats = {"win": 0, "loss": 0, "draw": 0}
@@ -154,6 +174,8 @@ def rps_game(agent_name="Joueur Humain"):
                 stats["loss"] += 1
             else:
                 stats["draw"] += 1
+
+        export_results(agent_name, stats, params)
 
         draw_message("🎮 Partie terminée - R pour rejouer | Échap pour quitter")
         draw_score(stats)
