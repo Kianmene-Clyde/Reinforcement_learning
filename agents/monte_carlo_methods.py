@@ -5,7 +5,6 @@ __all__ = [
     "on_policy_first_visit_mc_control",
     "monte_carlo_es",
     "off_policy_mc_control",
-    "greedy_policy_from_q"
 ]
 
 
@@ -18,7 +17,7 @@ def greedy_policy_from_q(Q):
     return pi
 
 
-def on_policy_first_visit_mc_control(env, num_episodes=10000, gamma=0.99, epsilon=0.1):
+def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.1):
     num_states = env.num_states()
     num_actions = env.num_actions()
 
@@ -27,7 +26,7 @@ def on_policy_first_visit_mc_control(env, num_episodes=10000, gamma=0.99, epsilo
     pi = np.ones((num_states, num_actions)) * (1.0 / num_actions)
     all_actions = np.arange(num_actions)
 
-    for _ in tqdm(range(num_episodes), desc="MC Control ε-soft"):
+    for _ in tqdm(range(episodes), desc="MC Control ε-soft"):
         env.reset()
         states, actions, rewards = [], [], []
 
@@ -64,7 +63,7 @@ def on_policy_first_visit_mc_control(env, num_episodes=10000, gamma=0.99, epsilo
     return pi, Q
 
 
-def monte_carlo_es(env, num_episodes=10000, gamma=0.99):
+def monte_carlo_es(env, episodes=10000, gamma=0.99):
     num_states = env.num_states()
     num_actions = env.num_actions()
 
@@ -73,7 +72,7 @@ def monte_carlo_es(env, num_episodes=10000, gamma=0.99):
     Returns_count = np.zeros((num_states, num_actions))
     pi = greedy_policy_from_q(Q)
 
-    for _ in tqdm(range(num_episodes), desc="Monte Carlo Exploring Starts"):
+    for _ in tqdm(range(episodes), desc="Monte Carlo Exploring Starts"):
         s0 = np.random.randint(0, num_states)
         a0 = np.random.randint(0, num_actions)
         env.reset_to(s0, a0)
@@ -105,7 +104,7 @@ def monte_carlo_es(env, num_episodes=10000, gamma=0.99):
     return pi, Q
 
 
-def off_policy_mc_control(env, num_episodes=10000, gamma=0.99):
+def off_policy_mc_control(env, episodes=10000, gamma=0.99):
     num_states = env.num_states()
     num_actions = env.num_actions()
 
@@ -114,7 +113,7 @@ def off_policy_mc_control(env, num_episodes=10000, gamma=0.99):
     pi = greedy_policy_from_q(Q)
     b = np.ones((num_states, num_actions)) / num_actions  # politique comportementale (uniforme)
 
-    for _ in tqdm(range(num_episodes), desc="Off-Policy MC Control"):
+    for _ in tqdm(range(episodes), desc="Off-Policy MC Control"):
         env.reset()
         states, actions, rewards = [], [], []
         old_score = env.score()

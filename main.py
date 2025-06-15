@@ -19,9 +19,7 @@ AGENTS = [
     "Off-policy Monte Carlo", "Q Learning"
 ]
 
-ENVS = [
-    "LineWorld", "GridWorld", "Monty Hall lvl 1", "Monty Hall lvl 2"
-]
+ENVS = ["LineWorld", "GridWorld", "Monty Hall lvl 1", "Monty Hall lvl 2"]
 
 selected_agent = 0
 selected_env = 0
@@ -51,14 +49,22 @@ while running:
             pygame.quit()
             sys.exit()
         elif event.type == pygame.KEYDOWN:
-            if event.unicode.isdigit():
-                index = int(event.unicode) - 1
-                if step == 0 and 0 <= index < len(AGENTS):
-                    selected_agent = index
+            if step == 0:
+                if event.unicode.isdigit():
+                    index = int(event.unicode) - 1
+                    if 0 <= index < len(AGENTS):
+                        selected_agent = index
+                        step = 1
+                elif event.unicode.lower() == 'q':
+                    selected_agent = 9
                     step = 1
-                elif step == 1 and 0 <= index < len(ENVS):
-                    selected_env = index
-                    running = False
+
+            elif step == 1:
+                if event.unicode.isdigit():
+                    index = int(event.unicode) - 1
+                    if 0 <= index < len(ENVS):
+                        selected_env = index
+                        running = False
 
 # === Lancement logique ===
 agent_name = AGENTS[selected_agent]

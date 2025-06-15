@@ -1,6 +1,7 @@
 import pygame
 import sys
 from Utils.export_results_to_xlsx import export_results
+from Utils.save_load_policy import save_policy, load_policy
 from agents.dynamic_programming import policy_iteration, value_iteration
 from agents.planning_methods import dyna_q, dyna_q_plus
 from agents.temporal_difference_methods import sarsa, expected_sarsa, q_learning
@@ -9,7 +10,6 @@ from agents.monte_carlo_methods import (
     monte_carlo_es,
     off_policy_mc_control
 )
-from Utils.save_load_policy import save_policy, load_policy
 from environments.line_world_env import LineWorldEnv
 
 CELL_SIZE = 100
@@ -34,7 +34,7 @@ class LineWorldRunner:
             "Dyna Q+": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5, "kappa": 0.001},
             "Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
             "Expected Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
-            "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1},
             "First visit Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1},
             "Monte Carlo ES": {"episodes": 1000},
             "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1}
@@ -45,6 +45,8 @@ class LineWorldRunner:
         self.env.get_actions = lambda s: [0, 1] if s not in self.env.terminal_states else []
         self.env.is_terminal = lambda s: s in self.env.terminal_states
         self.env.get_transitions = lambda s, a: [(1.0, *self.env.transition(s, a))]
+        self.env.num_states = self.env.length
+        self.env.num_actions = 2
 
     def run(self):
         print(f"Bienvenue dans l'environnement Line World avec l'agent '{self.agent_name}'")

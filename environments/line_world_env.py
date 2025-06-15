@@ -5,9 +5,29 @@ class LineWorldEnv:
         self.terminal_states = [0, length - 1]
         self.agent_pos = 2
 
+        # ✅ Interface standard pour agents tabulaires
+        self.num_states = length
+        self.num_actions = 2
+        self._score = 0  # utile pour TD
+
     def reset(self, pos=2):
         self.agent_pos = pos
+        self._score = 0
         return self.agent_pos
+
+    def step(self, action):
+        next_state, reward = self.transition(self.agent_pos, action)
+        self._score += reward
+        self.agent_pos = next_state
+
+    def state(self):
+        return self.agent_pos
+
+    def score(self):
+        return self._score
+
+    def is_game_over(self):
+        return self.agent_pos in self.terminal_states
 
     def get_states(self):
         return self.states

@@ -38,7 +38,7 @@ class GridWorldRunner:
             "Dyna Q+": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5, "kappa": 0.001},
             "Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
             "Expected Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
-            "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.3, "episodes": 10000},
             "First visit Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1},
             "Monte Carlo ES": {"episodes": 1000},
             "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1}
@@ -55,10 +55,17 @@ class GridWorldRunner:
 
         if choix == "1":
             try:
-                self.policy = load_policy(filename)
+                loaded_policy = load_policy(filename)
+                # Si les clés sont des entiers, on fait le mapping index_to_state
+                if isinstance(next(iter(loaded_policy)), int):
+                    self.policy = {self.env.index_to_state[s]: a for s, a in loaded_policy.items()}
+                else:
+                    self.policy = loaded_policy
+                print(f"📦 Politique chargée depuis {filename}")
             except FileNotFoundError as e:
                 print(e)
                 return
+
         else:
             agent_func_map = {
                 "Policy Iteration": policy_iteration,
@@ -80,7 +87,19 @@ class GridWorldRunner:
             try:
                 agent_func = agent_func_map[self.agent_name]
                 hyperparams = self.hyperparams_map.get(self.agent_name, {})
-                self.policy, _ = agent_func(self.env, **hyperparams)
+                policy_raw, Q = agent_func(self.env, **hyperparams)
+                if isinstance(policy_raw, dict):
+                    # Si les clés sont des entiers (ex: index d'état)
+                    if isinstance(next(iter(policy_raw)), int):
+                        self.policy = {self.env.index_to_state[s]: a for s, a in policy_raw.items()}
+                    else:
+                        self.policy = policy_raw
+                else:
+                    from agents.temporal_difference_methods import extract_deterministic_policy
+                    raw_policy = extract_deterministic_policy(policy_raw)
+                    self.policy = {self.env.index_to_state[s]: a for s, a in raw_policy.items()}
+
+
             except Exception as e:
                 print(f"Erreur lors de l'exécution de l'agent {self.agent_name} : {e}")
                 return
@@ -146,13 +165,13 @@ class GridWorldRunner:
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit();
+                    pygame.quit()
                     sys.exit()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:
                         return True
                     elif event.key == pygame.K_ESCAPE:
-                        pygame.quit();
+                        pygame.quit()
                         sys.exit()
 
     def _run_agent(self, hyperparams):
@@ -164,7 +183,7 @@ class GridWorldRunner:
                 self._draw(self.policy, total_reward, episode)
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        pygame.quit();
+                        pygame.quit()
                         sys.exit()
 
                 pygame.time.delay(300)
@@ -197,7 +216,7 @@ class GridWorldRunner:
                 self._draw({}, total_reward, episode)
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
-                        pygame.quit();
+                        pygame.quit()
                         sys.exit()
                     elif event.type == pygame.KEYDOWN:
                         if self.env.is_terminal(state):

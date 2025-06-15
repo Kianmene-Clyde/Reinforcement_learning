@@ -1,5 +1,8 @@
 import pygame
 import sys
+import numpy as np
+from Utils.save_load_policy import save_policy, load_policy
+from Utils.export_results_to_xlsx import export_results
 from agents.dynamic_programming import policy_iteration, value_iteration
 from agents.planning_methods import dyna_q, dyna_q_plus
 from agents.temporal_difference_methods import sarsa, expected_sarsa, q_learning
@@ -9,7 +12,6 @@ from agents.monte_carlo_methods import (
     off_policy_mc_control
 )
 from environments.monty_hall_lv2_env import MontyHallEnvLv2
-from Utils.save_load_policy import save_policy, load_policy
 
 WHITE, BLACK, GREEN, RED, GREY = (255, 255, 255), (0, 0, 0), (50, 200, 50), (255, 80, 80), (200, 200, 200)
 WIDTH, HEIGHT = 800, 400
@@ -40,7 +42,15 @@ class MontyHallRunnerLv2:
         if choix == "1":
             try:
                 self.policy = load_policy(filename)
-                self.hyperparams = {}  # Valeur vide si on ne les connaît pas
+                self.hyperparams = {}
+
+                if isinstance(self.policy, np.ndarray):
+                    self.policy = {
+                        state: int(np.argmax(self.policy[state]))
+                        for state in range(self.policy.shape[0])
+                    }
+
+                print(f"📦 Politique chargée depuis {filename}")
             except FileNotFoundError as e:
                 print(e)
                 return
@@ -65,6 +75,13 @@ class MontyHallRunnerLv2:
             try:
                 agent_func = agent_func_map[self.agent_name]
                 self.policy, self.hyperparams = agent_func(self.env)
+
+                if isinstance(self.policy, np.ndarray):
+                    self.policy = {
+                        state: int(np.argmax(self.policy[state]))
+                        for state in range(self.policy.shape[0])
+                    }
+
             except Exception as e:
                 print(f"Erreur lors de l'exécution de l'agent {self.agent_name} : {e}")
                 return

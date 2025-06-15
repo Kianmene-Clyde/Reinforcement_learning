@@ -4,7 +4,10 @@ import random
 from datetime import datetime
 import pandas as pd
 import os
+
 from Utils.save_load_policy import save_policy, load_policy
+from Utils.export_results_to_xlsx import export_results
+
 from agents.dynamic_programming import policy_iteration, value_iteration
 from agents.monte_carlo_methods import monte_carlo_es, off_policy_mc_control, on_policy_first_visit_mc_control
 from agents.temporal_difference_methods import sarsa, expected_sarsa, q_learning
@@ -24,24 +27,17 @@ pygame.display.set_caption("Rock Paper Scissors - Score Cumulé")
 font = pygame.font.SysFont("Arial", 24)
 
 
-def export_results(agent_name, stats, hyperparams, filename="rps_results.xlsx"):
-    data = {
-        "Date": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
-        "Agent": [agent_name],
-        **{f"Stat - {k}": [v] for k, v in stats.items()},
-        **{f"Hyper - {k}": [v] for k, v in hyperparams.items()}
-    }
-    df = pd.DataFrame(data)
-    if os.path.exists(filename):
-        existing = pd.read_excel(filename)
-        df = pd.concat([existing, df], ignore_index=True)
-    df.to_excel(filename, index=False)
-    print(f"📁 Résultats exportés vers {filename}")
+def safe_render(text, color):
+    try:
+        return font.render(text, True, color)
+    except UnicodeEncodeError:
+        clean_text = text.encode("ascii", "ignore").decode()
+        return font.render(clean_text, True, color)
 
 
 def draw_message(text):
     screen.fill(WHITE)
-    label = font.render(text, True, BLACK)
+    label = safe_render(text, BLACK)
     screen.blit(label, (WIDTH // 2 - label.get_width() // 2, 40))
     pygame.display.flip()
 
@@ -51,18 +47,18 @@ def draw_choices():
     for i in range(3):
         pygame.draw.rect(screen, GREY, (100 + i * 180, 150, 120, 100))
         pygame.draw.rect(screen, BLACK, (100 + i * 180, 150, 120, 100), 2)
-        label = font.render(f"{i} = {CHOICES[i]}", True, BLACK)
+        label = safe_render(f"{i} = {CHOICES[i]}", BLACK)
         screen.blit(label, (110 + i * 180, 190))
     pygame.display.flip()
 
 
 def draw_result(player, enemy, result, round_num, stats, is_agent=False):
     screen.fill(WHITE)
-    result_text = "ÉGALITÉ" if result == 0 else "✅ GAGNÉ !" if result == 1 else "❌ PERDU"
+    result_text = "ÉGALITÉ" if result == 0 else "✔ GAGNÉ !" if result == 1 else "✘ PERDU"
     who = "Agent" if is_agent else "Vous"
-    text = f"Round {round_num} - {who}: {CHOICES[player]} vs Ennemi: {CHOICES[enemy]} ➜ {result_text}"
+    text = f"Round {round_num} - {who}: {CHOICES[player]} vs Ennemi: {CHOICES[enemy]} -> {result_text}"
     color = GREEN if result == 1 else RED if result == -1 else BLACK
-    label = font.render(text, True, color)
+    label = safe_render(text, color)
     screen.blit(label, (WIDTH // 2 - label.get_width() // 2, HEIGHT // 2 - 30))
     draw_score(stats)
     pygame.display.flip()
@@ -70,9 +66,9 @@ def draw_result(player, enemy, result, round_num, stats, is_agent=False):
 
 def draw_score(stats):
     win, loss, draw = stats["win"], stats["loss"], stats["draw"]
-    screen.blit(font.render(f"✅ Victoires : {win}", True, GREEN), (20, HEIGHT - 60))
-    screen.blit(font.render(f"❌ Défaites : {loss}", True, RED), (250, HEIGHT - 60))
-    screen.blit(font.render(f"🤝 Égalités : {draw}", True, BLUE), (480, HEIGHT - 60))
+    screen.blit(safe_render(f"✔ Victoires : {win}", GREEN), (20, HEIGHT - 60))
+    screen.blit(safe_render(f"✘ Défaites : {loss}", RED), (250, HEIGHT - 60))
+    screen.blit(safe_render(f"= Égalités : {draw}", BLUE), (480, HEIGHT - 60))
 
 
 def wait_for_key():
@@ -94,9 +90,9 @@ def show_agent_menu():
     screen.fill(WHITE)
     draw_message("Sélectionnez un agent :")
     for i, text in enumerate(agents):
-        key_label = f"{i + 1}" if i < 10 else "A"
+        key_label = f"{i + 1}" if i < 9 else "0" if i == 9 else "A"
         pygame.draw.rect(screen, GREY, (150, 70 + i * 30, 400, 30))
-        label = font.render(f"{key_label} - {text}", True, BLACK)
+        label = safe_render(f"{key_label} - {text}", BLACK)
         screen.blit(label, (160, 75 + i * 30))
     pygame.display.flip()
 
@@ -115,6 +111,32 @@ def show_agent_menu():
                     return agents[10]
 
 
+def wait_choice():
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key in [pygame.K_0, pygame.K_1, pygame.K_2]:
+                    return int(event.unicode)
+
+
+def get_result(player, enemy):
+    if player == enemy:
+        return 0
+    elif WIN_MAP[player] == enemy:
+        return 1
+    else:
+        return -1
+
+
+def print_policy(policy):
+    print("\n--- Politique Apprise ---")
+    for state, action in policy.items():
+        print(f"État {state} -> Action {action} ({CHOICES[action]})")
+
+
 def rps_game(agent_name="Joueur Humain"):
     env = RPSGameEnv()
     agent_funcs = {
@@ -129,9 +151,31 @@ def rps_game(agent_name="Joueur Humain"):
         "Off-policy MC": (off_policy_mc_control, {"episodes": 1000}),
         "Q Learning": (q_learning, {"alpha": 0.1, "epsilon": 0.1, "episodes": 1000})
     }
+
+    filename = f"rps_{agent_name.replace(' ', '_').lower()}.pkl"
+
     if agent_name in agent_funcs:
-        agent_func, params = agent_funcs[agent_name]
-        policy, _ = agent_func(env, **params)
+        print(f"Agent : {agent_name}")
+        print("Souhaitez-vous :")
+        print("1 - Charger une politique existante")
+        print("2 - Entraîner une nouvelle politique")
+        choix = input("Votre choix (1/2) : ").strip()
+
+        if choix == "1":
+            try:
+                policy = load_policy(filename)
+                params = {}
+                print_policy(policy)
+            except FileNotFoundError as e:
+                print(e)
+                return
+        else:
+            agent_func, params = agent_funcs[agent_name]
+            policy, _ = agent_func(env, **params)
+            print_policy(policy)
+            print("Souhaitez-vous sauvegarder cette politique ? (O/N)")
+            if input().strip().lower() == "o":
+                save_policy(policy, filename)
         agent_mode = True
     else:
         policy = None
@@ -141,7 +185,8 @@ def rps_game(agent_name="Joueur Humain"):
     stats = {"win": 0, "loss": 0, "draw": 0}
     while True:
         state = env.reset()
-        player_first = policy[state] if agent_mode else None
+        state_index = env.get_state()
+        player_first = policy[state_index] if agent_mode else None
         enemy_first = random.randint(0, 2)
 
         if not agent_mode:
@@ -175,9 +220,9 @@ def rps_game(agent_name="Joueur Humain"):
             else:
                 stats["draw"] += 1
 
-        export_results(agent_name, stats, params)
+        export_results(agent_name, stats, params, params)
 
-        draw_message("🎮 Partie terminée - R pour rejouer | Échap pour quitter")
+        draw_message("Partie terminée - R pour rejouer | Échap pour quitter")
         draw_score(stats)
         pygame.display.flip()
 
@@ -195,26 +240,6 @@ def rps_game(agent_name="Joueur Humain"):
             else:
                 continue
             break
-
-
-def wait_choice():
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key in [pygame.K_0, pygame.K_1, pygame.K_2]:
-                    return int(event.unicode)
-
-
-def get_result(player, enemy):
-    if player == enemy:
-        return 0
-    elif WIN_MAP[player] == enemy:
-        return 1
-    else:
-        return -1
 
 
 if __name__ == "__main__":

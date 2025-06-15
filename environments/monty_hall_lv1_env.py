@@ -6,22 +6,29 @@ class MontyHallEnv:
         self.doors = [0, 1, 2]
         self.states = []  # État = (étape, porte_choisie, porte_ouverte)
         self._build_states()
+        self.state_to_index = {s: i for i, s in enumerate(self.states)}
+        self.index_to_state = {i: s for s, i in self.state_to_index.items()}
+        self.num_states = len(self.states)
+        self.num_actions = 3  # max possible actions (choisir une porte)
+
         self.reset()
+        self._score = 0
 
     def _build_states(self):
-        # start: choix initial
         for first_choice in self.doors:
             self.states.append(("start", first_choice, None))
-
-        # reveal: une porte est ouverte, deux choix: garder ou changer
         for first_choice in self.doors:
             for opened in self.doors:
                 if opened != first_choice:
                     self.states.append(("reveal", first_choice, opened))
-
-        # done: état terminal, succès ou échec
         for final_choice in self.doors:
             self.states.append(("done", final_choice))
+
+    def reset(self):
+        self.winning_door = random.choice(self.doors)
+        self.agent_state = ("start", random.choice(self.doors), None)
+        self._score = 0
+        return self.agent_state
 
     def get_states(self):
         return self.states
@@ -38,12 +45,7 @@ class MontyHallEnv:
     def is_terminal(self, state):
         return state[0] == "done"
 
-    def reset(self):
-        self.winning_door = random.choice(self.doors)
-        first_choice = random.choice(self.doors)
-        return ("start", first_choice, None)
-
-    def step(self, state, action):
+    def transition(self, state, action):
         phase = state[0]
 
         if phase == "start":
@@ -56,7 +58,6 @@ class MontyHallEnv:
         elif phase == "reveal":
             chosen_door = state[1]
             revealed_door = state[2]
-
             if action == 0:  # garder
                 final_choice = chosen_door
             else:  # changer
@@ -70,11 +71,25 @@ class MontyHallEnv:
             return state, 0.0
 
     def get_transitions(self, state, action):
-        # Pour policy iteration — retourne une liste de tuples (proba, next_state, reward)
-        next_state, reward = self.step(state, action)
+        next_state, reward = self.transition(state, action)
         return [(1.0, next_state, reward)]
 
     def get_reward(self, state):
         if state[0] == "done":
             return 1.0 if state[1] == self.winning_door else 0.0
         return 0.0
+
+    # === Interface compatible avec les agents tabulaires ===
+    def step(self, action):
+        self.agent_state, reward = self.transition(self.agent_state, action)
+        self._score += reward
+        return self.agent_state, reward
+
+    def state(self):
+        return self.state_to_index[self.agent_state]
+
+    def score(self):
+        return self._score
+
+    def is_game_over(self):
+        return self.agent_state[0] == "done"

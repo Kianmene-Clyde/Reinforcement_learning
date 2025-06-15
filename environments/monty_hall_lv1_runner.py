@@ -1,6 +1,7 @@
 import pygame
 import sys
 from Utils.save_load_policy import save_policy, load_policy
+from Utils.export_results_to_xlsx import export_results
 from agents.dynamic_programming import policy_iteration, value_iteration
 from agents.planning_methods import dyna_q, dyna_q_plus
 from agents.temporal_difference_methods import sarsa, expected_sarsa, q_learning
@@ -9,9 +10,8 @@ from agents.monte_carlo_methods import (
     monte_carlo_es,
     off_policy_mc_control
 )
-
 from environments.monty_hall_lv1_env import MontyHallEnv
-from Utils.export_results_to_xlsx import export_results
+import numpy as np
 
 WHITE, BLACK, BLUE, GREEN, RED, GREY = (
     (255, 255, 255), (0, 0, 0), (50, 50, 255), (50, 200, 50), (255, 80, 80), (200, 200, 200)
@@ -37,7 +37,7 @@ class MontyHallRunner:
             "Dyna Q+": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5, "kappa": 0.001},
             "Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
             "Expected Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
-            "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.3, "episodes": 10000},
             "First visit Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1},
             "Monte Carlo ES": {"episodes": 1000},
             "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1}
@@ -110,31 +110,46 @@ class MontyHallRunner:
             action_label = self.font.render(f"Action: {action_str}", True, BLUE)
             self.screen.blit(action_label, (WIDTH - 200, 20))
 
-        if isinstance(state, tuple) and state[0] == "reveal":
-            chosen = state[1]
-            revealed = state[2]
-            for i in range(3):
-                color = RED if i == revealed else GREEN if i == chosen else GREY
-                pygame.draw.rect(self.screen, color, (100 + i * 150, 100, CELL_WIDTH, 150))
-                num = self.font.render(str(i), True, BLACK)
-                self.screen.blit(num, (140 + i * 150, 160))
+        for i in range(3):
+            color = GREY
+            label_txt = ""
 
-        elif isinstance(state, tuple) and state[0] == "done":
-            final_choice = state[1]
-            for i in range(3):
-                color = GREEN if i == self.env.winning_door else GREY
-                pygame.draw.rect(self.screen, color, (100 + i * 150, 100, CELL_WIDTH, 150))
-                num = self.font.render(str(i), True, BLACK)
-                self.screen.blit(num, (140 + i * 150, 160))
-            result = "\u2705 GAGN\u00c9 !" if reward == 1.0 else "\u274c PERDU"
+            if isinstance(state, tuple):
+                phase = state[0]
+                chosen = state[1] if len(state) > 1 else None
+                opened = state[2] if len(state) > 2 else None
+
+                if phase == "start":
+                    if i == chosen:
+                        color = BLUE
+                        label_txt = "Choisie"
+                elif phase == "reveal":
+                    if i == opened:
+                        color = RED
+                        label_txt = "Ouverte"
+                    elif i == chosen:
+                        color = BLUE
+                        label_txt = "Choisie"
+                elif phase == "done":
+                    if i == self.env.winning_door:
+                        color = GREEN
+                        label_txt = "Gagnante"
+                    elif i == chosen:
+                        color = BLUE
+                        label_txt = "Choisie"
+
+            pygame.draw.rect(self.screen, color, (100 + i * 150, 100, CELL_WIDTH, 150))
+            num = self.font.render(str(i), True, BLACK)
+            self.screen.blit(num, (140 + i * 150, 110))
+
+            if label_txt:
+                tag = self.font.render(label_txt, True, BLACK)
+                self.screen.blit(tag, (110 + i * 150, 220))
+
+        if isinstance(state, tuple) and state[0] == "done":
+            result = "✅ GAGNÉ !" if reward == 1.0 else "❌ PERDU"
             label2 = self.font.render(f"{result} | R pour rejouer", True, BLACK)
             self.screen.blit(label2, (20, 60))
-
-        elif state == "start" or (isinstance(state, tuple) and state[0] == "start"):
-            for i in range(3):
-                pygame.draw.rect(self.screen, GREY, (100 + i * 150, 100, CELL_WIDTH, 150))
-                num = self.font.render(str(i), True, BLACK)
-                self.screen.blit(num, (140 + i * 150, 160))
 
         pygame.display.flip()
 
@@ -159,14 +174,15 @@ class MontyHallRunner:
             state = self.env.reset()
             reward = 0.0
             while not self.env.is_terminal(state):
-                action = self.policy.get(state, 0)
+                state_index = self.env.state_to_index[state]
+                action = np.argmax(self.policy[state_index])
                 action_str = "GARDER" if action == 0 else "CHANGER"
-                print(f"[Agent] \u00c9tat: {state} -> Action: {action_str}")
-                self._draw(state, reward, f"\u00c9pisode {episode}", action_str)
+                print(f"[Agent] État: {state} -> Action: {action_str}")
+                self._draw(state, reward, f"Épisode {episode}", action_str)
                 pygame.time.delay(1000)
-                next_state, reward = self.env.step(state, action)
+                next_state, reward = self.env.step(action)
                 state = next_state
-            self._draw(state, reward, f"\u2705 Termin\u00e9 | \u00c9pisode {episode}")
+            self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
 
             export_results(
                 agent_name=self.agent_name,
@@ -184,7 +200,7 @@ class MontyHallRunner:
             state = self.env.reset()
             reward = 0.0
             while not self.env.is_terminal(state):
-                self._draw(state, reward, f"\u00c9pisode {episode} - Choisissez une action (0, 1, 2)")
+                self._draw(state, reward, f"Épisode {episode} - Choisissez une action")
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
@@ -194,9 +210,9 @@ class MontyHallRunner:
                         if event.unicode.isdigit():
                             a = int(event.unicode)
                             if a in actions:
-                                next_state, reward = self.env.step(state, a)
+                                next_state, reward = self.env.step(a)
                                 state = next_state
                 pygame.time.delay(200)
-            self._draw(state, reward, f"\u2705 Termin\u00e9 | \u00c9pisode {episode}")
+            self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
             episode += 1
             self._wait_for_restart()
