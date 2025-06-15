@@ -198,6 +198,7 @@ class MontyHallRunner:
         episode = 1
         while True:
             state = self.env.reset()
+            state = ("start", None, None)
             reward = 0.0
             while not self.env.is_terminal(state):
                 self._draw(state, reward, f"Épisode {episode} - Choisissez une action")

@@ -15,12 +15,18 @@ class LineWorldEnv:
         self._score = 0
         return self.agent_pos
 
+    def reset_to(self, state_index, action):
+        self.agent_pos = state_index
+        self._score = 0
+        return self.agent_pos
+
     def step(self, action):
         next_state, reward = self.transition(self.agent_pos, action)
         self._score += reward
         self.agent_pos = next_state
+        return next_state, reward
 
-    def state(self):
+    def get_state(self):
         return self.agent_pos
 
     def score(self):

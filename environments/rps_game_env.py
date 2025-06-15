@@ -17,6 +17,23 @@ class RPSGameEnv:
         self._score = 0
         return self.state
 
+    def reset_to(self, state_index, action):
+        state = self.index_to_state[state_index]
+        if state is None:
+            self.state = None
+            self.round = 1
+            self.done = False
+        elif isinstance(state, tuple):
+            self.state = state
+            self.round = 2
+            self.done = False
+        else:
+            self.state = "TERMINAL"
+            self.round = 2
+            self.done = True
+        self._score = 0
+        return self.state
+
     def get_states(self):
         return self.states
 
@@ -74,11 +91,11 @@ class RPSGameEnv:
     def counter_action(self, action):
         return (action + 1) % 3
 
-    # === Interface pour les agents tabulaires ===
     def step(self, action):
         next_state, reward = self.transition(self.state, action)
         self.state = next_state
         self._score += reward
+        return next_state, reward
 
     def get_state(self):
         return self.state_to_index[self.state]

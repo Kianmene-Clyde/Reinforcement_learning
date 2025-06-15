@@ -26,6 +26,20 @@ class MontyHallRunnerLv2:
         self.policy = {}
         self.results = []
         self.hyperparams = {}
+
+        self.hyperparams_map = {
+            "Policy Iteration": {"gamma": 0.99},
+            "Value Iteration": {"gamma": 0.99},
+            "Dyna Q": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5},
+            "Dyna Q+": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5, "kappa": 0.001},
+            "Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "Expected Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.3, "episodes": 10000},
+            "First visit Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1},
+            "Monte Carlo ES": {"episodes": 1000},
+            "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1}
+        }
+
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.font = pygame.font.SysFont("Arial", 22)
         pygame.display.set_caption(f"Monty Hall LV2 - {self.agent_name}")
@@ -74,7 +88,9 @@ class MontyHallRunnerLv2:
 
             try:
                 agent_func = agent_func_map[self.agent_name]
-                self.policy, self.hyperparams = agent_func(self.env)
+                hyperparams = self.hyperparams_map.get(self.agent_name, {})
+                self.policy, _ = agent_func(self.env, **hyperparams)
+                self.hyperparams = hyperparams
 
                 if isinstance(self.policy, np.ndarray):
                     self.policy = {

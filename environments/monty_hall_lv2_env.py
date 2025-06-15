@@ -41,6 +41,12 @@ class MontyHallEnvLv2:
         self._score = 0
         return self.agent_state
 
+    def reset_to(self, state_index, action):
+        self.winning_door = random.choice(self.doors)
+        self.agent_state = self.index_to_state[state_index]
+        self._score = 0
+        return self.agent_state
+
     def get_states(self):
         return self.states
 
@@ -88,7 +94,7 @@ class MontyHallEnvLv2:
         self.agent_state = next_state
         return next_state, reward
 
-    def state(self):
+    def get_state(self):
         return self.state_to_index[self.agent_state]
 
     def score(self):

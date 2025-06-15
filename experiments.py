@@ -52,7 +52,7 @@ HYPERPARAM_GRID = {
     "theta": [1e-4],
     "planning_steps": [5],
     "kappa": [1e-4],
-    "num_episodes": [1000]
+    "episodes": [1000]
 }
 
 OUTPUT_DIR = "Reports"
@@ -65,13 +65,17 @@ all_results = []
 def evaluate_policy(env, policy):
     rewards = []
     for _ in range(10):
-        state = env.reset()
+        env.reset()
+        state = env.get_state()
         total = 0
-        while not env.is_terminal(state):
-            action = policy.get(state, 0) if isinstance(policy, dict) else policy[state].argmax()
-            next_state, reward = env.transition(state, action)
-            state = next_state
-            total += reward
+        while not env.is_game_over():
+            if isinstance(policy, dict):
+                action = policy.get(state, 0)
+            else:
+                action = int(policy[state].argmax())
+            env.step(action)
+            total += env.score()
+            state = env.get_state()
         rewards.append(total)
     return sum(rewards) / len(rewards), rewards
 
@@ -88,41 +92,52 @@ def run_experiments():
                 HYPERPARAM_GRID["theta"],
                 HYPERPARAM_GRID["planning_steps"],
                 HYPERPARAM_GRID["kappa"],
-                HYPERPARAM_GRID["num_episodes"]
+                HYPERPARAM_GRID["episodes"]
             ))
 
-            for gamma, alpha, epsilon, theta, planning_steps, kappa, num_episodes in (
+            for gamma, alpha, epsilon, theta, planning_steps, kappa, episodes in (
                     tqdm(param_grid, desc=f"Hyperparams ({agent_name})", leave=False)):
-                kwargs = {
-                    "gamma": gamma,
-                    "alpha": alpha,
-                    "epsilon": epsilon,
-                    "theta": theta,
-                    "planning_steps": planning_steps,
-                    "kappa": kappa,
-                    "num_episodes": num_episodes
-                }
 
+                kwargs = dict(
+                    gamma=gamma,
+                    alpha=alpha,
+                    epsilon=epsilon,
+                    theta=theta,
+                    planning_steps=planning_steps,
+                    kappa=kappa,
+                    episodes=episodes
+                )
+
+                # Adapter les paramètres selon les besoins de chaque agent
                 try:
                     if agent_name in ["policy_iteration", "value_iteration"]:
                         policy, _ = agent_func(env, gamma=gamma, theta=theta)
+
                     elif agent_name == "mc_on_policy":
-                        policy, _ = agent_func(env, num_episodes=num_episodes, gamma=gamma, epsilon=epsilon)
+                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma, epsilon=epsilon)
+
                     elif agent_name == "mc_es":
-                        policy, _ = agent_func(env, num_episodes=num_episodes, gamma=gamma)
+                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma)
+
                     elif agent_name == "mc_off_policy":
-                        policy, _ = agent_func(env, num_episodes=num_episodes, gamma=gamma)
+                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma)
+
                     elif agent_name in ["sarsa", "q_learning", "expected_sarsa"]:
-                        policy, _ = agent_func(env, num_episodes=num_episodes, gamma=gamma, alpha=alpha,
-                                               epsilon=epsilon)
+                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma,
+                                               alpha=alpha, epsilon=epsilon)
+
                     elif agent_name == "dyna_q":
-                        policy, _ = agent_func(env, num_episodes=num_episodes, gamma=gamma, alpha=alpha,
-                                               epsilon=epsilon, planning_steps=planning_steps)
+                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma,
+                                               alpha=alpha, epsilon=epsilon,
+                                               planning_steps=planning_steps)
+
                     elif agent_name == "dyna_q_plus":
-                        policy, _ = agent_func(env, num_episodes=num_episodes, gamma=gamma, alpha=alpha,
-                                               epsilon=epsilon, planning_steps=planning_steps, kappa=kappa)
+                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma,
+                                               alpha=alpha, epsilon=epsilon,
+                                               planning_steps=planning_steps, kappa=kappa)
+
                     else:
-                        raise ValueError("Agent non pris en charge.")
+                        raise ValueError(f"Agent non supporté: {agent_name}")
 
                     mean_score, scores = evaluate_policy(env, policy)
 
@@ -139,12 +154,10 @@ def run_experiments():
                 except Exception as e:
                     print(f"❌ Erreur avec {agent_name} sur {env_name} : {e}")
 
-    # Résumé global : export .xlsx + graphes
     df = pd.DataFrame(all_results)
     xlsx_path = os.path.join(OUTPUT_DIR, "global_comparison.xlsx")
     with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
         df.to_excel(writer, sheet_name="Résultats", index=False)
-
         best_params = df.loc[df.groupby(["agent", "env"])["mean_score"].idxmax()]
         best_params.to_excel(writer, sheet_name="BestParams", index=False)
 
