@@ -9,7 +9,7 @@ class MontyHallEnvLv2:
         self.state_to_index = {s: i for i, s in enumerate(self.states)}
         self.index_to_state = {i: s for s, i in self.state_to_index.items()}
         self.num_states = len(self.states)
-        self.num_actions = 5  # nombre max d'actions possibles (choisir une porte)
+        self.num_actions = 5
 
         self.reset()
         self._score = 0
@@ -17,11 +17,9 @@ class MontyHallEnvLv2:
     def _build_states(self):
         for first_choice in self.doors:
             self.states.append(("start", first_choice, None))
-
         for first_choice in self.doors:
             for revealed_combo in self._combinations_except(first_choice):
                 self.states.append(("reveal", first_choice, tuple(sorted(revealed_combo))))
-
         for final_choice in self.doors:
             self.states.append(("done", final_choice))
 
@@ -39,13 +37,13 @@ class MontyHallEnvLv2:
         self.winning_door = random.choice(self.doors)
         self.agent_state = ("start", random.choice(self.doors), None)
         self._score = 0
-        return self.agent_state
+        return self.agent_state  # ✅ correction ici
 
     def reset_to(self, state_index, action):
         self.winning_door = random.choice(self.doors)
         self.agent_state = self.index_to_state[state_index]
         self._score = 0
-        return self.agent_state
+        return self.agent_state  # ✅ correction ici
 
     def get_states(self):
         return self.states
@@ -60,22 +58,26 @@ class MontyHallEnvLv2:
             return []
 
     def is_terminal(self, state):
-        return state[0] == "done"
+        if isinstance(state, tuple):
+            return state[0] == "done"
+        return False
 
     def transition(self, state, action):
-        phase = state[0]
+        if isinstance(state, int):
+            next_state = 0
+            reward = 0
+            return next_state, reward
 
+        phase = state[0]
         if phase == "start":
             chosen_door = action
             possible = [d for d in self.doors if d != chosen_door and d != self.winning_door]
             revealed = tuple(sorted(random.sample(possible, 3)))
             return ("reveal", chosen_door, revealed), 0.0
-
         elif phase == "reveal":
             final_choice = action
             reward = 1.0 if final_choice == self.winning_door else 0.0
             return ("done", final_choice), reward
-
         else:
             return state, 0.0
 
@@ -88,10 +90,18 @@ class MontyHallEnvLv2:
             return 1.0 if state[1] == self.winning_door else 0.0
         return 0.0
 
-    # === Compatibilité agents tabulaires ===
-    def step(self, state, action):
+    def step(self, *args):
+        if len(args) == 1:
+            action = args[0]
+            state = self.agent_state
+        elif len(args) == 2:
+            state, action = args
+        else:
+            raise ValueError("step() attend 1 ou 2 arguments")
+
         next_state, reward = self.transition(state, action)
         self.agent_state = next_state
+        self._score += reward
         return next_state, reward
 
     def get_state(self):

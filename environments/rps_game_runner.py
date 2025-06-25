@@ -149,7 +149,7 @@ def rps_game(agent_name="Joueur Humain"):
         "First Visit MC": (on_policy_first_visit_mc_control, {"epsilon": 0.1, "episodes": 1000}),
         "MC ES": (monte_carlo_es, {"episodes": 1000}),
         "Off-policy MC": (off_policy_mc_control, {"episodes": 1000}),
-        "Q Learning": (q_learning, {"alpha": 0.1, "epsilon": 0.1, "episodes": 1000})
+        "Q Learning": (q_learning, {"alpha": 0.1, "episodes": 1000})
     }
 
     filename = f"rps_{agent_name.replace(' ', '_').lower()}.pkl"

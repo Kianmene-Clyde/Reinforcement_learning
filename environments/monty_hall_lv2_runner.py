@@ -37,7 +37,7 @@ class MontyHallRunnerLv2:
             "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.3, "episodes": 10000},
             "First visit Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1},
             "Monte Carlo ES": {"episodes": 1000},
-            "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1}
+            "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500}
         }
 
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -165,15 +165,29 @@ class MontyHallRunnerLv2:
     def _run_agent(self):
         episode = 1
         while True:
+            # 🔄 Traitement des événements pygame pour éviter les freezes
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
             state = self.env.reset()
             reward = 0.0
+
             while not self.env.is_terminal(state):
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+
                 self._draw(state, reward, f"Épisode {episode}")
                 pygame.time.delay(1000)
                 action = self.policy.get(state, 0)
                 state, reward = self.env.step(state, action)
+
             self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
             self.results.append(reward)
+
             export_results(
                 agent_name=self.agent_name,
                 env_name="MontyHall LV2",
@@ -181,6 +195,7 @@ class MontyHallRunnerLv2:
                 hyperparams=self.hyperparams,
                 filename="montyhall_lv2_results.xlsx"
             )
+
             episode += 1
             self._wait_for_restart()
 
