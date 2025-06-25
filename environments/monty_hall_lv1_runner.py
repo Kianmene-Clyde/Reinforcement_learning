@@ -175,13 +175,39 @@ class MontyHallRunner:
             reward = 0.0
             while not self.env.is_terminal(state):
                 state_index = self.env.state_to_index[state]
-                action = np.argmax(self.policy[state_index])
+
+                # 🎯 Gestion universelle de la politique
+                if state in self.policy:
+                    policy_value = self.policy[state]
+                elif state_index in self.policy:
+                    policy_value = self.policy[state_index]
+                else:
+                    print(f"⚠️ État inconnu dans la politique : {state} (index {state_index})")
+                    actions = self.env.get_actions(state)
+                    if actions:
+                        action = actions[0]
+                        action_str = "INCONNU"
+                    else:
+                        break  # Aucun choix possible
+                    self._draw(state, reward, f"Épisode {episode}", action_str)
+                    pygame.time.delay(1000)
+                    next_state, reward = self.env.step(action)
+                    state = next_state
+                    continue
+
+                # 🧠 Interprétation de la politique selon son format
+                if isinstance(policy_value, int):
+                    action = policy_value
+                else:
+                    action = np.argmax(policy_value)
+
                 action_str = "GARDER" if action == 0 else "CHANGER"
                 print(f"[Agent] État: {state} -> Action: {action_str}")
                 self._draw(state, reward, f"Épisode {episode}", action_str)
                 pygame.time.delay(1000)
                 next_state, reward = self.env.step(action)
                 state = next_state
+
             self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
 
             export_results(

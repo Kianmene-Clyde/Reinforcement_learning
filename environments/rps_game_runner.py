@@ -131,12 +131,6 @@ def get_result(player, enemy):
         return -1
 
 
-def print_policy(policy):
-    print("\n--- Politique Apprise ---")
-    for state, action in policy.items():
-        print(f"État {state} -> Action {action} ({CHOICES[action]})")
-
-
 def rps_game(agent_name="Joueur Humain"):
     env = RPSGameEnv()
     agent_funcs = {
@@ -158,21 +152,19 @@ def rps_game(agent_name="Joueur Humain"):
         print(f"Agent : {agent_name}")
         print("Souhaitez-vous :")
         print("1 - Charger une politique existante")
-        print("2 - Entraîner une nouvelle politique")
+        print("2 - Apprendre une nouvelle politique")
         choix = input("Votre choix (1/2) : ").strip()
 
         if choix == "1":
             try:
                 policy = load_policy(filename)
                 params = {}
-                print_policy(policy)
             except FileNotFoundError as e:
                 print(e)
                 return
         else:
             agent_func, params = agent_funcs[agent_name]
             policy, _ = agent_func(env, **params)
-            print_policy(policy)
             print("Souhaitez-vous sauvegarder cette politique ? (O/N)")
             if input().strip().lower() == "o":
                 save_policy(policy, filename)
@@ -186,7 +178,23 @@ def rps_game(agent_name="Joueur Humain"):
     while True:
         state = env.reset()
         state_index = env.get_state()
-        player_first = policy[state_index] if agent_mode else None
+
+        # 🔁 Bloc sécurisé pour déterminer player_first
+        if agent_mode:
+            if hasattr(env, "index_to_state"):
+                state_obj = env.index_to_state[state_index]
+            else:
+                state_obj = None
+
+            if state_obj in policy:
+                player_first = policy[state_obj]
+            elif state_index in policy:
+                player_first = policy[state_index]
+            else:
+                player_first = random.randint(0, 2)
+        else:
+            player_first = None
+
         enemy_first = random.randint(0, 2)
 
         if not agent_mode:
@@ -198,7 +206,16 @@ def rps_game(agent_name="Joueur Humain"):
         wait_for_key()
 
         new_state = (player_first, enemy_first)
-        player_second = policy.get(new_state, random.randint(0, 2)) if agent_mode else None
+
+        # 🔁 Bloc sécurisé pour déterminer player_second
+        if agent_mode:
+            if new_state in policy:
+                player_second = policy[new_state]
+            else:
+                player_second = random.randint(0, 2)
+        else:
+            player_second = None
+
         counter = WIN_MAP[player_first]
         enemy_probs = [0.15, 0.15, 0.15]
         enemy_probs[counter] = 0.7
