@@ -42,6 +42,10 @@ while running:
         label = small_font.render(f"{i + 1} - {name}", True, BLACK)
         screen.blit(label, (100, 90 + i * 45))
 
+    if step == 1:
+        back_label = small_font.render("Appuyez sur B pour revenir", True, BLACK)
+        screen.blit(back_label, (WIDTH // 2 - back_label.get_width() // 2, HEIGHT - 50))
+
     pygame.display.flip()
 
     for event in pygame.event.get():
@@ -58,9 +62,10 @@ while running:
                 elif event.unicode.lower() == 'q':
                     selected_agent = 9
                     step = 1
-
             elif step == 1:
-                if event.unicode.isdigit():
+                if event.unicode.lower() == 'b':
+                    step = 0  # Retour au choix d'agent
+                elif event.unicode.isdigit():
                     index = int(event.unicode) - 1
                     if 0 <= index < len(ENVS):
                         selected_env = index

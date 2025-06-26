@@ -1,6 +1,7 @@
 import pygame
 import sys
 import random
+import numpy as np
 from datetime import datetime
 import pandas as pd
 import os
@@ -179,52 +180,51 @@ def rps_game(agent_name="Joueur Humain"):
         state = env.reset()
         state_index = env.get_state()
 
-        # 🔁 Bloc sécurisé pour déterminer player_first
         if agent_mode:
-            if hasattr(env, "index_to_state"):
-                state_obj = env.index_to_state[state_index]
-            else:
-                state_obj = None
-
-            if state_obj in policy:
-                player_first = policy[state_obj]
-            elif state_index in policy:
-                player_first = policy[state_index]
+            if isinstance(policy, dict):
+                if hasattr(env, "index_to_state"):
+                    state_obj = env.index_to_state.get(state_index)
+                    player_first = policy.get(state_obj, random.randint(0, 2))
+                else:
+                    player_first = random.randint(0, 2)
+            elif isinstance(policy, np.ndarray):
+                player_first = int(np.argmax(policy[state_index]))
             else:
                 player_first = random.randint(0, 2)
         else:
-            player_first = None
-
-        enemy_first = random.randint(0, 2)
-
-        if not agent_mode:
             draw_message("Round 1 - Choisissez 0/1/2")
             draw_choices()
             player_first = wait_choice()
+
+        enemy_first = random.randint(0, 2)
         result1 = get_result(player_first, enemy_first)
         draw_result(player_first, enemy_first, result1, 1, stats, is_agent=agent_mode)
         wait_for_key()
 
         new_state = (player_first, enemy_first)
 
-        # 🔁 Bloc sécurisé pour déterminer player_second
         if agent_mode:
-            if new_state in policy:
-                player_second = policy[new_state]
+            if isinstance(policy, dict):
+                player_second = policy.get(new_state, random.randint(0, 2))
+            elif isinstance(policy, np.ndarray):
+                new_state_index = env.state_to_index.get(new_state)
+                if new_state_index is not None:
+                    player_second = int(np.argmax(policy[new_state_index]))
+                else:
+                    print(f"⚠️ État inconnu (non indexable) : {new_state}")
+                    player_second = random.randint(0, 2)
             else:
                 player_second = random.randint(0, 2)
         else:
-            player_second = None
+            draw_message("Round 2 - Choisissez 0/1/2")
+            draw_choices()
+            player_second = wait_choice()
 
         counter = WIN_MAP[player_first]
         enemy_probs = [0.15, 0.15, 0.15]
         enemy_probs[counter] = 0.7
         enemy_second = random.choices([0, 1, 2], weights=enemy_probs)[0]
 
-        if not agent_mode:
-            draw_message("Round 2 - Choisissez 0/1/2")
-            draw_choices()
-            player_second = wait_choice()
         result2 = get_result(player_second, enemy_second)
         draw_result(player_second, enemy_second, result2, 2, stats, is_agent=agent_mode)
         wait_for_key()

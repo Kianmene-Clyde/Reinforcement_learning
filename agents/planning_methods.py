@@ -25,7 +25,7 @@ def epsilon_greedy_policy(Q, epsilon):
     return pi
 
 
-def dyna_q(env, episodes=1000, gamma=0.99, alpha=0.1, epsilon=0.1, planning_steps=10):
+def dyna_q(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.1, planning_steps=10):
     num_states = get_num_states(env)
     num_actions = get_num_actions(env)
     Q = np.zeros((num_states, num_actions))
@@ -34,6 +34,7 @@ def dyna_q(env, episodes=1000, gamma=0.99, alpha=0.1, epsilon=0.1, planning_step
 
     for _ in tqdm(range(episodes), desc="Dyna-Q"):
         env.reset()
+
         s = get_state(env)
         old_score = env.score()
 

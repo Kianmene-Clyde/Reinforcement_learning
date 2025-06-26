@@ -30,7 +30,7 @@ class LineWorldRunner:
         self.hyperparams_map = {
             "Policy Iteration": {"gamma": 0.99},
             "Value Iteration": {"gamma": 0.99},
-            "Dyna Q": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5},
+            "Dyna Q": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.05, "planning_steps": 10},
             "Dyna Q+": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5, "kappa": 0.001},
             "Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
             "Expected Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
@@ -147,6 +147,8 @@ class LineWorldRunner:
                         sys.exit()
 
     def _run_agent(self):
+        import numpy as np
+
         episode = 1
         while True:
             state = self.env.reset()
@@ -154,14 +156,29 @@ class LineWorldRunner:
             while True:
                 self._draw(self.policy, total_reward, episode)
                 pygame.time.delay(400)
+
                 if state in self.env.terminal_states:
                     self._draw(self.policy, total_reward, episode, "✅ Terminé - appuyez sur R")
                     break
-                action = self.policy[state]
+
+                # 🔁 Accès sécurisé à la politique
+                if state in self.policy:
+                    policy_value = self.policy[state]
+                else:
+                    policy_value = self.env.get_actions(state)[0]  # fallback action
+
+                # 🧠 Déterminer l’action selon le type
+                if isinstance(policy_value, (list, np.ndarray)):
+                    action = int(np.argmax(policy_value))
+                else:
+                    action = int(policy_value)
+
+                # 👣 Appliquer l’action
                 next_state, reward = self.env.transition(state, action)
                 state = next_state
                 total_reward += reward
                 self.env.agent_pos = state
+
             self._draw(self.policy, total_reward, episode, "✅ Terminé - appuyez sur R")
 
             # ✅ EXPORT des résultats
