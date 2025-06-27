@@ -80,6 +80,7 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
         Returns_sum = np.zeros((num_states, num_actions))
         Returns_count = np.zeros((num_states, num_actions))
         pi = greedy_policy_from_q(Q)
+        pi = (1 - 0.01) * pi + 0.01 * (1.0 / num_actions)  # petit bruit initial
 
         for _ in tqdm(range(episodes), desc="Monte Carlo Exploring Starts"):
             s0 = np.random.randint(0, num_states)
@@ -90,14 +91,22 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
             visited_pairs = set()
             old_score = env.score()
 
+            s = s0
+            a = a0
             step_count = 0
             while not env.is_game_over() and step_count < max_steps:
-                s = env.get_state()
-                a = np.argmax(pi[s])
                 env.step(a)
                 r = env.score() - old_score
                 old_score = env.score()
                 episode.append((s, a, r))
+
+                s = env.get_state()
+                # Politique ε-greedy pour éviter les boucles
+                if np.random.rand() < 0.05:
+                    a = np.random.randint(num_actions)
+                else:
+                    a = np.argmax(pi[s])
+
                 step_count += 1
 
             if step_count >= max_steps:
@@ -123,44 +132,52 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
         return np.zeros((num_states, num_actions)), fallback_q
 
 
-def off_policy_mc_control(env, episodes=10000, gamma=0.99):
+def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
     num_states = get_num_states(env)
     num_actions = get_num_actions(env)
 
-    Q = np.random.random((num_states, num_actions))
-    C = np.zeros((num_states, num_actions))
+    Q = np.zeros((num_states, num_actions))
+    C = np.zeros((num_states, num_actions))  # importance sampling
     pi = greedy_policy_from_q(Q)
-    b = np.ones((num_states, num_actions)) / num_actions
+
+    def behavior_policy(state):
+        return np.ones(num_actions) / num_actions  # uniforme aléatoire
 
     for _ in tqdm(range(episodes), desc="Off-Policy MC Control"):
-        env.reset()
-        states, actions, rewards = [], [], []
+        episode = []
         old_score = env.score()
 
-        while not env.is_game_over():
-            s = env.get_state()
-            a = np.random.choice(np.arange(num_actions), p=b[s])
-            env.step(a)
-            r = env.score() - old_score
+        state = env.reset()
+        done = False
+        step_count = 0
+
+        while not done and step_count < max_steps:
+            probs = behavior_policy(state)
+            action = np.random.choice(np.arange(num_actions), p=probs)
+
+            env.step(action)
+            reward = env.score() - old_score
             old_score = env.score()
 
-            states.append(s)
-            actions.append(a)
-            rewards.append(r)
+            episode.append((state, action, reward))
+            state = env.get_state()
+            done = env.is_game_over()
+            step_count += 1
+
+        if step_count >= max_steps:
+            print("⚠️ max_steps atteint - possible boucle")
 
         G = 0
         W = 1
+        for t in reversed(range(len(episode))):
+            s, a, r = episode[t]
+            G = gamma * G + r
+            C[s][a] += W
+            Q[s][a] += (W / C[s][a]) * (G - Q[s][a])
+            pi[s] = np.eye(num_actions)[np.argmax(Q[s])]
 
-        for t in reversed(range(len(states))):
-            s_t, a_t, r_tp1 = states[t], actions[t], rewards[t]
-            G = gamma * G + r_tp1
-
-            C[s_t, a_t] += W
-            Q[s_t, a_t] += (W / C[s_t, a_t]) * (G - Q[s_t, a_t])
-            pi[s_t] = np.eye(num_actions)[np.argmax(Q[s_t])]
-
-            if a_t != np.argmax(pi[s_t]):
-                break
-            W = W / b[s_t, a_t]
+            if pi[s][a] != 1.0:
+                break  # early termination
+            W *= 1.0 / behavior_policy(s)[a]
 
     return pi, Q

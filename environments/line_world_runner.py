@@ -30,14 +30,15 @@ class LineWorldRunner:
         self.hyperparams_map = {
             "Policy Iteration": {"gamma": 0.99},
             "Value Iteration": {"gamma": 0.99},
-            "Dyna Q": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.05, "planning_steps": 10},
-            "Dyna Q+": {"gamma": 0.95, "alpha": 0.1, "epsilon": 0.1, "planning_steps": 5, "kappa": 0.001},
-            "Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
-            "Expected Sarsa": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1, "episodes": 100},
+            "Dyna Q": {"episodes": 10000, "gamma": 0.99, "alpha": 0.1, "epsilon": 0.2, "planning_steps": 10},
+            "Dyna Q+": {"episodes": 10000, "gamma": 0.99, "alpha": 0.1, "epsilon": 0.2, "planning_steps": 5,
+                        "kappa": 0.001},
+            "Sarsa": {"gamma": 0.99, "alpha": 0.1, "epsilon": 0.2, "episodes": 10000},
+            "Expected Sarsa": {"gamma": 0.99, "alpha": 0.1, "epsilon": 0.2, "episodes": 10000},
             "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.1},
-            "First visit Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1},
-            "Monte Carlo ES": {"episodes": 1000},
-            "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500}
+            "First visit Monte Carlo": {"gamma": 0.99, "episodes": 10000, "epsilon": 0.2},
+            "Monte Carlo ES": {"episodes": 10000},
+            "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 10000}
         }
 
     def _prepare_env(self):
@@ -107,6 +108,12 @@ class LineWorldRunner:
             print("Mode invalide.")
 
     def _draw_arrow(self, surface, x, y, direction):
+        import numpy as np
+        if isinstance(direction, (list, np.ndarray)):
+            if np.all(np.isnan(direction)) or np.all(np.array(direction) == 0):
+                return  # Ne rien dessiner si aucune action significative
+            direction = int(np.argmax(direction))  # Convertir en action dominante
+
         if direction == 1:
             pygame.draw.polygon(surface, BLACK, [(x, y), (x - 10, y - 10), (x - 10, y + 10)])
         elif direction == 0:
@@ -153,6 +160,9 @@ class LineWorldRunner:
         while True:
             state = self.env.reset()
             total_reward = 0
+            steps = 0
+            max_steps = 30
+
             while True:
                 self._draw(self.policy, total_reward, episode)
                 pygame.time.delay(400)
@@ -161,23 +171,30 @@ class LineWorldRunner:
                     self._draw(self.policy, total_reward, episode, "✅ Terminé - appuyez sur R")
                     break
 
-                # 🔁 Accès sécurisé à la politique
                 if state in self.policy:
                     policy_value = self.policy[state]
                 else:
-                    policy_value = self.env.get_actions(state)[0]  # fallback action
+                    policy_value = self.env.get_actions(state)[0]
 
-                # 🧠 Déterminer l’action selon le type
                 if isinstance(policy_value, (list, np.ndarray)):
                     action = int(np.argmax(policy_value))
                 else:
                     action = int(policy_value)
 
-                # 👣 Appliquer l’action
                 next_state, reward = self.env.transition(state, action)
+
+                print(
+                    f"État actuel : {state}, action choisie : {action}, état suivant : {next_state}, reward : {reward}")
+
                 state = next_state
                 total_reward += reward
                 self.env.agent_pos = state
+
+                steps += 1
+                if steps >= max_steps:
+                    print(f"⚠️ max_steps atteint ({max_steps}) - boucle bloquée ?")
+                    self._draw(self.policy, total_reward, episode, f"⚠️ max_steps atteint ({max_steps})")
+                    break
 
             self._draw(self.policy, total_reward, episode, "✅ Terminé - appuyez sur R")
 

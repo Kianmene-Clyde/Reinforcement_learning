@@ -41,7 +41,7 @@ class GridWorldRunner:
             "Q Learning": {"gamma": 0.9, "alpha": 0.1, "epsilon": 0.3, "episodes": 10000},
             "First visit Monte Carlo": {"gamma": 0.9, "episodes": 500, "epsilon": 0.1},
             "Monte Carlo ES": {"gamma" : 0.9, "episodes": 1000},
-            "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 500}
+            "Off-policy Monte Carlo": {"gamma": 0.9, "episodes": 1000}
         }
 
     def run(self):

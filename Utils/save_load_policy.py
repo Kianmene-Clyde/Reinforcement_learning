@@ -6,8 +6,11 @@ def save_policy(policy, filename, directory="saved_policies"):
     """
     Sauvegarde une politique (policy) dans un fichier .pkl
     """
-    os.makedirs(directory, exist_ok=True)
     path = os.path.join(directory, filename)
+
+    # ✅ Crée tous les dossiers parents si besoin
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
     with open(path, "wb") as f:
         pickle.dump(policy, f)
     print(f"✅ Politique sauvegardée dans {path}")
