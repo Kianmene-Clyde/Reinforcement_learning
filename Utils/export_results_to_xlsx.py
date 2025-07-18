@@ -19,4 +19,4 @@ def export_results(agent_name, env_name, stats, hyperparams, filename="results.x
         df = pd.concat([existing, df], ignore_index=True)
 
     df.to_excel(filename, index=False)
-    print(f"📁 Résultats exportés vers {filename}")
+    print(f"Résultats exportés vers {filename}")

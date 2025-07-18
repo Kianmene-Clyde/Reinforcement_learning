@@ -64,7 +64,7 @@ class MontyHallRunnerLv2:
                         for state in range(self.policy.shape[0])
                     }
 
-                print(f"📦 Politique chargée depuis {filename}")
+                print(f"Politique chargée depuis {filename}")
             except FileNotFoundError as e:
                 print(e)
                 return
@@ -83,7 +83,7 @@ class MontyHallRunnerLv2:
             }
 
             if self.agent_name not in agent_func_map:
-                print(f"⚠️ Agent '{self.agent_name}' non reconnu.")
+                print(f"Agent '{self.agent_name}' non reconnu.")
                 return
 
             try:

@@ -6,9 +6,9 @@ import seaborn as sns
 import pygame
 
 # === Paramètres ===
-FILE_PATH = "Reports/global_comparison.xlsx"
-SHEET_NAME = "Résultats"
-OUTPUT_DIR = "Reports/Visualisations"
+FILE_PATH = "../Reports/global_comparison.xlsx"
+SHEET_NAME = "RésuméGlobal"
+OUTPUT_DIR = "../Reports/Visualisations_interactif"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # === Chargement des données ===
@@ -116,7 +116,7 @@ try:
             plt.title(f"Corrélation hyperparamètres vs score - {agent} sur {env}")
             plt.savefig(os.path.join(OUTPUT_DIR, f"correlation_{agent}_{env}.png"))
 
-    print(f"\n✅ Graphique '{graph}' généré pour {agent} sur {env} dans {OUTPUT_DIR}")
+    print(f"\n Graphique '{graph}' généré pour {agent} sur {env} dans {OUTPUT_DIR}")
 
 except Exception as e:
-    print(f"\n❌ Une erreur est survenue lors de la génération du graphique : {e}")
+    print(f"\n Une erreur est survenue lors de la génération du graphique : {e}")

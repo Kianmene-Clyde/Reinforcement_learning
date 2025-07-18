@@ -13,7 +13,7 @@ def save_policy(policy, filename, directory="saved_policies"):
 
     with open(path, "wb") as f:
         pickle.dump(policy, f)
-    print(f"✅ Politique sauvegardée dans {path}")
+    print(f"Politique sauvegardée dans {path}")
 
 
 def load_policy(filename, directory="saved_policies"):
@@ -22,8 +22,8 @@ def load_policy(filename, directory="saved_policies"):
     """
     path = os.path.join(directory, filename)
     if not os.path.exists(path):
-        raise FileNotFoundError(f"❌ Fichier introuvable : {path}")
+        raise FileNotFoundError(f"Fichier introuvable : {path}")
     with open(path, "rb") as f:
         policy = pickle.load(f)
-    print(f"📦 Politique chargée depuis {path}")
+    print(f"Politique chargée depuis {path}")
     return policy

@@ -71,17 +71,17 @@ ENVS = {
 
 
 def test_compatibility():
-    print("🔍 Test de compatibilité agent <-> environnement...\n")
+    print(" Test de compatibilité agent <-> environnement...\n")
     for env_name, env_class in ENVS.items():
         for agent_name in AGENT_NAMES:
             try:
-                print(f"🧪 Test: Agent '{agent_name}' sur '{env_name}'... ", end="")
+                print(f"Test: Agent '{agent_name}' sur '{env_name}'... ", end="")
                 env = env_class()
                 agent_func = get_agent_function(agent_name, env_name)
                 policy, q = agent_func(env)
-                print("✅ Succès")
+                print("Succès")
             except Exception as e:
-                print("❌ Échec")
+                print("Échec")
                 traceback.print_exc(limit=1, file=sys.stdout)
 
 

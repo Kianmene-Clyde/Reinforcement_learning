@@ -110,7 +110,7 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
                 step_count += 1
 
             if step_count >= max_steps:
-                print("⚠️ Avertissement : max_steps atteint dans monte_carlo_es")
+                print("Avertissement : max_steps atteint dans monte_carlo_es")
 
             G = 0
             for t in reversed(range(len(episode))):
@@ -127,45 +127,57 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
         return pi, Q
 
     except MemoryError:
-        print("❌ MemoryError : trop d'états pour Monte Carlo ES.")
+        print("MemoryError : trop d'états pour Monte Carlo ES.")
         fallback_q = Q if 'Q' in locals() else np.zeros((num_states, num_actions))
         return np.zeros((num_states, num_actions)), fallback_q
 
 
 def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
-    num_states = get_num_states(env)
-    num_actions = get_num_actions(env)
+    try:
+        num_states = get_num_states(env)
+        num_actions = get_num_actions(env)
+    except Exception:
+        raise ValueError("L'environnement doit définir num_states() et num_actions()")
 
     Q = np.zeros((num_states, num_actions))
-    C = np.zeros((num_states, num_actions))  # importance sampling
-    pi = greedy_policy_from_q(Q)
+    C = np.zeros((num_states, num_actions))
+    pi = np.zeros((num_states, num_actions))
 
-    def behavior_policy(state):
-        return np.ones(num_actions) / num_actions  # uniforme aléatoire
+    # Politique initiale : aléatoire
+    for s in range(num_states):
+        pi[s, np.random.randint(num_actions)] = 1.0
+
+    def behavior_policy(_):
+        return np.ones(num_actions) / num_actions  # uniforme
 
     for _ in tqdm(range(episodes), desc="Off-Policy MC Control"):
         episode = []
+        env.reset()
         old_score = env.score()
 
-        state = env.reset()
+        s = env.get_state()
         done = False
         step_count = 0
 
         while not done and step_count < max_steps:
-            probs = behavior_policy(state)
-            action = np.random.choice(np.arange(num_actions), p=probs)
+            probs = behavior_policy(s)
+            a = np.random.choice(np.arange(num_actions), p=probs)
 
-            env.step(action)
-            reward = env.score() - old_score
+            try:
+                env.step(a)
+            except TypeError:
+                env.step(s, a)
+
+            r = env.score() - old_score
             old_score = env.score()
+            episode.append((s, a, r))
 
-            episode.append((state, action, reward))
-            state = env.get_state()
+            s = env.get_state()
             done = env.is_game_over()
             step_count += 1
 
         if step_count >= max_steps:
-            print("⚠️ max_steps atteint - possible boucle")
+            print("max_steps atteint - boucle potentielle")
 
         G = 0
         W = 1
@@ -175,9 +187,8 @@ def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
             C[s][a] += W
             Q[s][a] += (W / C[s][a]) * (G - Q[s][a])
             pi[s] = np.eye(num_actions)[np.argmax(Q[s])]
-
             if pi[s][a] != 1.0:
-                break  # early termination
+                break
             W *= 1.0 / behavior_policy(s)[a]
 
     return pi, Q

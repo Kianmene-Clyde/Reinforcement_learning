@@ -1,6 +1,9 @@
 import os
 import time
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from datetime import datetime
 from itertools import product
 from tqdm import tqdm
@@ -17,8 +20,8 @@ from Utils.save_load_policy import save_policy
 
 # === Configurations ===
 AGENTS = {
-    "policy_iteration": policy_iteration,
-    "value_iteration": value_iteration,
+    # "policy_iteration": policy_iteration,
+    # "value_iteration": value_iteration,
     "mc_on_policy": on_policy_first_visit_mc_control,
     "mc_es": monte_carlo_es,
     "mc_off_policy": off_policy_mc_control,
@@ -30,10 +33,10 @@ AGENTS = {
 }
 
 ENVIRONMENTS = {
-    "SecretEnv0": SecretEnv0,
-    "SecretEnv1": SecretEnv1,
     "SecretEnv2": SecretEnv2,
-    "SecretEnv3": SecretEnv3
+    "SecretEnv1": SecretEnv1,
+    "SecretEnv3": SecretEnv3,
+    "SecretEnv0": SecretEnv0
 }
 
 HYPERPARAM_GRID = {
@@ -59,7 +62,9 @@ def evaluate_policy(env, policy, runs=5):
         env.reset()
         state = env.state_id()
         total = 0
-        while not env.is_game_over():
+        step = 0
+        max_steps = 1000
+        while not env.is_game_over() and step < max_steps:
             if isinstance(policy, dict):
                 action = policy.get(state, 0)
             else:
@@ -67,8 +72,11 @@ def evaluate_policy(env, policy, runs=5):
             env.step(action)
             total = env.score()
             state = env.state_id()
+            step += 1
+        if step >= max_steps:
+            print("Épisode bloqué détecté dans evaluate_policy (max_steps atteint)")
         rewards.append(total)
-    return sum(rewards) / len(rewards), rewards
+    return np.mean(rewards), np.std(rewards), rewards
 
 
 def run_experiments():
@@ -85,10 +93,15 @@ def run_experiments():
                 HYPERPARAM_GRID["kappa"],
                 HYPERPARAM_GRID["episodes"]
             ))
-            print(f"\n▶️ Entrainement de l'agent {agent_name} sur l'environnement {env_name}...")
+            print(f"\n Entrainement de l'agent {agent_name} sur l'environnement {env_name}...")
 
             for gamma, alpha, epsilon, theta, planning_steps, kappa, episodes in (
                     tqdm(param_grid, desc=f"Hyperparams ({agent_name})", leave=False)):
+
+                print(f"Hyperparamètres de {agent_name} : "
+                      f"gamma={gamma}, alpha={alpha}, epsilon={epsilon}, "
+                      f"theta={theta}, planning_steps={planning_steps}, "
+                      f"kappa={kappa}, episodes={episodes}")
 
                 kwargs = dict(
                     gamma=gamma,
@@ -130,7 +143,7 @@ def run_experiments():
                     else:
                         raise ValueError(f"Agent non supporté: {agent_name}")
 
-                    mean_score, scores = evaluate_policy(env, policy)
+                    mean_score, std_score, scores = evaluate_policy(env, policy)
 
                     filename = f"policy_{env_name}_{agent_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
                     save_policy(policy, os.path.join(POLICY_DIR, filename))
@@ -139,11 +152,12 @@ def run_experiments():
                         "agent": agent_name,
                         "env": env_name,
                         "mean_score": mean_score,
+                        "std_score": std_score,
                         **kwargs
                     })
 
                 except Exception as e:
-                    print(f"❌ Erreur avec {agent_name} sur {env_name} : {e}")
+                    print(f"Erreur avec {agent_name} sur {env_name} : {e}")
 
     df = pd.DataFrame(all_results)
     xlsx_path = os.path.join(OUTPUT_DIR, "secret_comparison.xlsx")
@@ -152,10 +166,22 @@ def run_experiments():
         best_params = df.loc[df.groupby(["agent", "env"])["mean_score"].idxmax()]
         best_params.to_excel(writer, sheet_name="BestParams", index=False)
 
-    print("\n📊 Résumé global exporté en .xlsx avec toutes les politiques sauvegardées.")
+    # Génération des graphiques de performance
+    for env_name in df["env"].unique():
+        plt.figure(figsize=(10, 6))
+        df_env = df[df["env"] == env_name]
+        sns.barplot(data=df_env, x="agent", y="mean_score", ci="sd", palette="viridis")
+        plt.title(f"Performances des agents sur {env_name}")
+        plt.ylabel("Score moyen")
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.savefig(os.path.join(OUTPUT_DIR, f"{env_name}_performance.png"))
+        plt.close()
+
+    print("\n Résumé global exporté en .xlsx avec toutes les politiques et graphiques sauvegardés.")
 
 
 if __name__ == "__main__":
     start = time.time()
     run_experiments()
-    print(f"\n✅ Expériences terminées en {time.time() - start:.2f} secondes.")
+    print(f"\n Expériences terminées en {time.time() - start:.2f} secondes.")

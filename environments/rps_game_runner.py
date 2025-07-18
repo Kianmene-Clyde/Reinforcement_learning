@@ -211,7 +211,7 @@ def rps_game(agent_name="Joueur Humain"):
                 if new_state_index is not None:
                     player_second = int(np.argmax(policy[new_state_index]))
                 else:
-                    print(f"⚠️ État inconnu (non indexable) : {new_state}")
+                    print(f"État inconnu (non indexable) : {new_state}")
                     player_second = random.randint(0, 2)
             else:
                 player_second = random.randint(0, 2)

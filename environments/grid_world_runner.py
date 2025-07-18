@@ -61,7 +61,7 @@ class GridWorldRunner:
                     self.policy = {self.env.index_to_state[s]: a for s, a in loaded_policy.items()}
                 else:
                     self.policy = loaded_policy
-                print(f"📦 Politique chargée depuis {filename}")
+                print(f"Politique chargée depuis {filename}")
             except FileNotFoundError as e:
                 print(e)
                 return
@@ -81,7 +81,7 @@ class GridWorldRunner:
             }
 
             if self.agent_name not in agent_func_map:
-                print(f"⚠️ Agent '{self.agent_name}' non reconnu.")
+                print(f"Agent '{self.agent_name}' non reconnu.")
                 return
 
             try:

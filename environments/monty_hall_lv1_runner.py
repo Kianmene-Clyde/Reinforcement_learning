@@ -73,7 +73,7 @@ class MontyHallRunner:
             }
 
             if self.agent_name not in agent_func_map:
-                print(f"⚠️ Agent '{self.agent_name}' non reconnu.")
+                print(f"Agent '{self.agent_name}' non reconnu.")
                 return
 
             try:
@@ -182,7 +182,7 @@ class MontyHallRunner:
                 pygame.time.delay(1000)
                 next_state, reward = self.env.step(action)
                 state = next_state
-            self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
+            self._draw(state, reward, f"Terminé | Épisode {episode}")
 
             export_results(
                 agent_name=self.agent_name,

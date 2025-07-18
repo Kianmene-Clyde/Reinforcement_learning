@@ -78,7 +78,7 @@ class LineWorldRunner:
             }
 
             if self.agent_name not in agent_func_map:
-                print(f"⚠️ Agent '{self.agent_name}' non reconnu.")
+                print(f"Agent '{self.agent_name}' non reconnu.")
                 return
 
             agent_func = agent_func_map[self.agent_name]
@@ -192,11 +192,11 @@ class LineWorldRunner:
 
                 steps += 1
                 if steps >= max_steps:
-                    print(f"⚠️ max_steps atteint ({max_steps}) - boucle bloquée ?")
-                    self._draw(self.policy, total_reward, episode, f"⚠️ max_steps atteint ({max_steps})")
+                    print(f"max_steps atteint ({max_steps}) - boucle bloquée ?")
+                    self._draw(self.policy, total_reward, episode, f"max_steps atteint ({max_steps})")
                     break
 
-            self._draw(self.policy, total_reward, episode, "✅ Terminé - appuyez sur R")
+            self._draw(self.policy, total_reward, episode, "Terminé - appuyez sur R")
 
             # ✅ EXPORT des résultats
             export_results(

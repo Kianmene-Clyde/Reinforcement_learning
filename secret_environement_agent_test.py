@@ -57,7 +57,7 @@ results = []
 for env_name, EnvClass in environments:
     env = EnvClass()
     for agent_name, agent_fn in agents:
-        print(f"⏳ Test de {agent_name} sur {env_name}")
+        print(f"Test de {agent_name} sur {env_name}")
         try:
             policy = agent_fn(env)
             score, steps = evaluate_policy(env, policy)
@@ -78,15 +78,15 @@ for env_name, EnvClass in environments:
                 "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 "Erreur": str(e),
             })
-            print(f"❌ Erreur avec {agent_name} sur {env_name} : {e}")
+            print(f"Erreur avec {agent_name} sur {env_name} : {e}")
 
 df = pd.DataFrame(results)
 os.makedirs("exports", exist_ok=True)
 df.to_excel("exports/secret_envs_results.xlsx", index=False)
-print("\n✅ Résultats sauvegardés dans 'exports/secret_envs_results.xlsx'")
+print("\n Résultats sauvegardés dans 'exports/secret_envs_results.xlsx'")
 
 end_time = time.time()
 elapsed_time = end_time - start_time
 minutes = int(elapsed_time // 60)
 seconds = int(elapsed_time % 60)
-print(f"\n⏱️ Temps d'exécution total : {minutes} min {seconds} sec")
+print(f"\n Temps d'exécution total : {minutes} min {seconds} sec")

@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Charger les résultats
-file_path = "Reports/global_comparison.xlsx"
-sheet_name = "Résultats"
-output_dir = "Reports/Visualisations"
+file_path = "../Reports/global_comparison.xlsx"
+sheet_name = "RésuméGlobal"
+output_dir = "../Reports/Visualisations"
 os.makedirs(output_dir, exist_ok=True)
 
 df = pd.read_excel(file_path, sheet_name=sheet_name)
@@ -65,4 +65,4 @@ plt.tight_layout()
 plt.savefig(os.path.join(output_dir, "correlation_hyperparams_score.png"))
 plt.close()
 
-print("✅ Graphiques de visualisation générés dans Reports/Visualisations/")
+print("Graphiques de visualisation générés dans Reports/Visualisations/")
