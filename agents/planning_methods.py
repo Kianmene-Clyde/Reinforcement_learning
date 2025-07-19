@@ -32,11 +32,13 @@ def dyna_q(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.1, planning_ste
     model = defaultdict(dict)
     seen_state_action = set()
 
+    steps_per_episode = []
+
     for _ in tqdm(range(episodes), desc="Dyna-Q"):
         env.reset()
-
         s = get_state(env)
         old_score = env.score()
+        step_count = 0
 
         while not env.is_game_over():
             pi = epsilon_greedy_policy(Q, epsilon)
@@ -58,13 +60,14 @@ def dyna_q(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.1, planning_ste
             for _ in range(planning_steps):
                 s_sim, a_sim = list(seen_state_action)[np.random.randint(len(seen_state_action))]
                 r_sim, s_next_sim = model[s_sim][a_sim]
-                Q[s_sim, a_sim] += alpha * (
-                        r_sim + gamma * np.max(Q[s_next_sim]) - Q[s_sim, a_sim]
-                )
+                Q[s_sim, a_sim] += alpha * (r_sim + gamma * np.max(Q[s_next_sim]) - Q[s_sim, a_sim])
 
             s = s_prime
+            step_count += 1
 
-    return epsilon_greedy_policy(Q, epsilon), Q
+        steps_per_episode.append(step_count)
+
+    return epsilon_greedy_policy(Q, epsilon), Q, steps_per_episode
 
 
 def dyna_q_plus(env, episodes=1000, gamma=0.99, alpha=0.1, epsilon=0.1,
@@ -76,10 +79,13 @@ def dyna_q_plus(env, episodes=1000, gamma=0.99, alpha=0.1, epsilon=0.1,
     time_since = defaultdict(lambda: defaultdict(lambda: 0))
     seen_state_action = set()
 
+    steps_per_episode = []
+
     for _ in tqdm(range(episodes), desc="Dyna-Q+"):
         env.reset()
         s = get_state(env)
         old_score = env.score()
+        step_count = 0
 
         while not env.is_game_over():
             pi = epsilon_greedy_policy(Q, epsilon)
@@ -112,5 +118,8 @@ def dyna_q_plus(env, episodes=1000, gamma=0.99, alpha=0.1, epsilon=0.1,
                 Q[s_sim, a_sim] += alpha * (target - Q[s_sim, a_sim])
 
             s = s_prime
+            step_count += 1
 
-    return epsilon_greedy_policy(Q, epsilon), Q
+        steps_per_episode.append(step_count)
+
+    return epsilon_greedy_policy(Q, epsilon), Q, steps_per_episode

@@ -28,6 +28,7 @@ def sarsa(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.1):
     num_states = get_num_states(env)
     num_actions = get_num_actions(env)
     Q = np.zeros((num_states, num_actions))
+    steps_per_episode = []
 
     for _ in tqdm(range(episodes), desc="SARSA"):
         env.reset()
@@ -35,6 +36,7 @@ def sarsa(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.1):
         pi = epsilon_greedy_policy(Q, epsilon)
         a = np.random.choice(num_actions, p=pi[s])
         old_score = env.score()
+        step_count = 0
 
         while not env.is_game_over():
             try:
@@ -56,20 +58,25 @@ def sarsa(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.1):
 
             s = s_prime
             a = a_prime
+            step_count += 1
 
-    return epsilon_greedy_policy(Q, epsilon), Q
+        steps_per_episode.append(step_count)
+
+    return epsilon_greedy_policy(Q, epsilon), Q, steps_per_episode
 
 
 def q_learning(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.3):
     num_states = get_num_states(env)
     num_actions = get_num_actions(env)
     Q = np.zeros((num_states, num_actions))
+    steps_per_episode = []
 
     for _ in tqdm(range(episodes), desc="Q-Learning"):
         env.reset()
         s = env.get_state()
         pi = epsilon_greedy_policy(Q, epsilon)
         old_score = env.score()
+        step_count = 0
 
         while not env.is_game_over():
             a = np.random.choice(num_actions, p=pi[s])
@@ -88,19 +95,24 @@ def q_learning(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.3):
                 target = r
             Q[s, a] += alpha * (target - Q[s, a])
             s = s_prime
+            step_count += 1
 
-    return extract_deterministic_policy(Q), Q
+        steps_per_episode.append(step_count)
+
+    return extract_deterministic_policy(Q), Q, steps_per_episode
 
 
 def expected_sarsa(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.1):
     num_states = get_num_states(env)
     num_actions = get_num_actions(env)
     Q = np.zeros((num_states, num_actions))
+    steps_per_episode = []
 
     for _ in tqdm(range(episodes), desc="Expected SARSA"):
         env.reset()
         s = env.get_state()
         old_score = env.score()
+        step_count = 0
 
         while not env.is_game_over():
             pi = epsilon_greedy_policy(Q, epsilon)
@@ -123,5 +135,8 @@ def expected_sarsa(env, episodes=10000, gamma=0.99, alpha=0.1, epsilon=0.1):
             expected_q = np.dot(pi_prime[s_prime], Q[s_prime])
             Q[s, a] += alpha * (r + gamma * expected_q - Q[s, a])
             s = s_prime
+            step_count += 1
 
-    return epsilon_greedy_policy(Q, epsilon), Q
+        steps_per_episode.append(step_count)
+
+    return epsilon_greedy_policy(Q, epsilon), Q, steps_per_episode

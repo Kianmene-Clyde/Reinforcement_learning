@@ -34,9 +34,12 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
     pi = np.ones((num_states, num_actions)) * (1.0 / num_actions)
     all_actions = np.arange(num_actions)
 
+    steps_per_episode = []
+
     for _ in tqdm(range(episodes), desc="MC Control ε-soft"):
         env.reset()
         states, actions, rewards = [], [], []
+        step_count = 0
 
         while not env.is_game_over():
             s = env.get_state()
@@ -48,6 +51,9 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
             states.append(s)
             actions.append(a)
             rewards.append(r)
+            step_count += 1
+
+        steps_per_episode.append(step_count)
 
         terminal_state = env.get_state()
         Q[terminal_state, :] = 0.0
@@ -68,7 +74,7 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
                 pi[s_t] = epsilon / num_actions
                 pi[s_t, best_a] = 1.0 - epsilon + (epsilon / num_actions)
 
-    return pi, Q
+    return pi, Q, steps_per_episode
 
 
 def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
@@ -81,6 +87,8 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
         Returns_count = np.zeros((num_states, num_actions))
         pi = greedy_policy_from_q(Q)
         pi = (1 - 0.01) * pi + 0.01 * (1.0 / num_actions)  # petit bruit initial
+
+        steps_per_episode = []
 
         for _ in tqdm(range(episodes), desc="Monte Carlo Exploring Starts"):
             s0 = np.random.randint(0, num_states)
@@ -101,13 +109,14 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
                 episode.append((s, a, r))
 
                 s = env.get_state()
-                # Politique ε-greedy pour éviter les boucles
                 if np.random.rand() < 0.05:
                     a = np.random.randint(num_actions)
                 else:
                     a = np.argmax(pi[s])
 
                 step_count += 1
+
+            steps_per_episode.append(step_count)
 
             if step_count >= max_steps:
                 print("Avertissement : max_steps atteint dans monte_carlo_es")
@@ -124,12 +133,12 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
                     Q[s_t][a_t] = Returns_sum[s_t][a_t]
                     pi[s_t] = np.eye(num_actions)[np.argmax(Q[s_t])]
 
-        return pi, Q
+        return pi, Q, steps_per_episode
 
     except MemoryError:
         print("MemoryError : trop d'états pour Monte Carlo ES.")
         fallback_q = Q if 'Q' in locals() else np.zeros((num_states, num_actions))
-        return np.zeros((num_states, num_actions)), fallback_q
+        return np.zeros((num_states, num_actions)), fallback_q, []
 
 
 def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
@@ -143,12 +152,13 @@ def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
     C = np.zeros((num_states, num_actions))
     pi = np.zeros((num_states, num_actions))
 
-    # Politique initiale : aléatoire
     for s in range(num_states):
         pi[s, np.random.randint(num_actions)] = 1.0
 
     def behavior_policy(_):
-        return np.ones(num_actions) / num_actions  # uniforme
+        return np.ones(num_actions) / num_actions
+
+    steps_per_episode = []
 
     for _ in tqdm(range(episodes), desc="Off-Policy MC Control"):
         episode = []
@@ -176,6 +186,8 @@ def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
             done = env.is_game_over()
             step_count += 1
 
+        steps_per_episode.append(step_count)
+
         if step_count >= max_steps:
             print("max_steps atteint - boucle potentielle")
 
@@ -191,4 +203,4 @@ def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
                 break
             W *= 1.0 / behavior_policy(s)[a]
 
-    return pi, Q
+    return pi, Q, steps_per_episode

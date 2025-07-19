@@ -65,4 +65,25 @@ plt.tight_layout()
 plt.savefig(os.path.join(output_dir, "correlation_hyperparams_score.png"))
 plt.close()
 
+# 6. Comparaison Score vs Steps dans chaque environnement
+if 'mean_steps' in df.columns:
+    for env in df['env'].unique():
+        subset = df[df['env'] == env]
+
+        if subset.empty:
+            continue
+
+        plt.figure(figsize=(8, 6))
+        sns.scatterplot(data=subset, x='mean_steps', y='mean_score', hue='agent', s=120)
+
+        for i, row in subset.iterrows():
+            plt.text(row['mean_steps'] + 0.5, row['mean_score'], row['agent'], fontsize=9)
+
+        plt.title(f"Comparaison des agents dans l'environnement {env}")
+        plt.xlabel("Nombre moyen de steps par épisode")
+        plt.ylabel("Score moyen")
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, f"score_vs_steps_{env}.png"))
+        plt.close()
+
 print("Graphiques de visualisation générés dans Reports/Visualisations/")

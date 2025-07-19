@@ -25,8 +25,13 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
 
     Q = np.zeros((num_states, num_actions))
     returns_count = np.zeros((num_states, num_actions))
-    pi = np.ones((num_states, num_actions)) * (1.0 / num_actions)
-    all_actions = np.arange(num_actions)
+    pi = np.zeros((num_states, num_actions))
+
+    for state in range(num_states):
+        valid_actions = env.available_actions(state)
+        if valid_actions:
+            for a in valid_actions:
+                pi[state, a] = 1.0 / len(valid_actions)
 
     for _ in tqdm(range(episodes), desc="MC Control ε-soft"):
         env.reset()
@@ -36,7 +41,14 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
         states, actions, rewards = [], [], []
 
         while not env.is_game_over():
-            a = np.random.choice(all_actions, p=pi[s])
+            valid_actions = env.available_actions(s)
+            if not valid_actions:
+                break
+
+            action_probs = np.array([pi[s, a] if a in valid_actions else 0 for a in range(num_actions)])
+            action_probs /= action_probs.sum()
+            a = np.random.choice(np.arange(num_actions), p=action_probs)
+
             env.step(a)
             r = env.score() - old_score
             old_score = env.score()
@@ -58,8 +70,13 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
                 returns_count[s_t, a_t] += 1
                 Q[s_t, a_t] += (G - Q[s_t, a_t]) / returns_count[s_t, a_t]
 
-                best_a = np.argmax(Q[s_t])
-                pi[s_t] = epsilon / num_actions
+                valid_actions = env.available_actions(s_t)
+                if not valid_actions:
+                    continue
+
+                best_a = max(valid_actions, key=lambda a: Q[s_t, a])
+                for a in range(num_actions):
+                    pi[s_t, a] = epsilon / len(valid_actions) if a in valid_actions else 0
                 pi[s_t, best_a] += 1.0 - epsilon
 
     return pi, Q
