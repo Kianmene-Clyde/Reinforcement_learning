@@ -28,8 +28,8 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
     pi = np.zeros((num_states, num_actions))
 
     for state in range(num_states):
-        valid_actions = env.available_actions(state)
-        if valid_actions:
+        valid_actions = env.available_actions()
+        if len(valid_actions) > 0:
             for a in valid_actions:
                 pi[state, a] = 1.0 / len(valid_actions)
 
@@ -41,8 +41,8 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
         states, actions, rewards = [], [], []
 
         while not env.is_game_over():
-            valid_actions = env.available_actions(s)
-            if not valid_actions:
+            valid_actions = env.available_actions()
+            if len(valid_actions) == 0:
                 break
 
             action_probs = np.array([pi[s, a] if a in valid_actions else 0 for a in range(num_actions)])
@@ -70,8 +70,8 @@ def on_policy_first_visit_mc_control(env, episodes=10000, gamma=0.99, epsilon=0.
                 returns_count[s_t, a_t] += 1
                 Q[s_t, a_t] += (G - Q[s_t, a_t]) / returns_count[s_t, a_t]
 
-                valid_actions = env.available_actions(s_t)
-                if not valid_actions:
+                valid_actions = env.available_actions()
+                if len(valid_actions) == 0:
                     continue
 
                 best_a = max(valid_actions, key=lambda a: Q[s_t, a])
@@ -92,7 +92,10 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
 
     for _ in tqdm(range(episodes), desc="Monte Carlo Exploring Starts"):
         s0 = np.random.randint(0, num_states)
-        a0 = np.random.randint(0, num_actions)
+        valid_actions = env.available_actions()
+        if len(valid_actions) == 0:
+            continue
+        a0 = np.random.choice(valid_actions)
 
         try:
             env.reset_to(s0, a0)
@@ -112,11 +115,9 @@ def monte_carlo_es(env, episodes=10000, gamma=0.99, max_steps=100):
 
             s = env.state_id()
             actions = env.available_actions()
-            if actions:
-                a = np.random.choice(actions)
-            else:
+            if len(actions) == 0:
                 break
-
+            a = np.random.choice(actions)
             step_count += 1
 
         G = 0
@@ -142,9 +143,6 @@ def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
     C = np.zeros((num_states, num_actions))
     pi = greedy_policy_from_q(Q)
 
-    def behavior_policy(state):
-        return np.ones(num_actions) / num_actions
-
     for _ in tqdm(range(episodes), desc="Off-Policy MC Control"):
         env.reset()
         s = env.state_id()
@@ -153,7 +151,10 @@ def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
         step_count = 0
 
         while not env.is_game_over() and step_count < max_steps:
-            a = np.random.choice(np.arange(num_actions), p=behavior_policy(s))
+            valid_actions = env.available_actions()
+            if len(valid_actions) == 0:
+                break
+            a = np.random.choice(valid_actions)
             env.step(a)
             r = env.score() - old_score
             old_score = env.score()
@@ -168,9 +169,10 @@ def off_policy_mc_control(env, gamma=0.99, episodes=10000, max_steps=100):
             G = gamma * G + r_tp1
             C[s_t, a_t] += W
             Q[s_t, a_t] += (W / C[s_t, a_t]) * (G - Q[s_t, a_t])
-            pi[s_t] = np.eye(num_actions)[np.argmax(Q[s_t])]
-            if pi[s_t][a_t] != 1.0:
+            best_a = np.argmax(Q[s_t])
+            pi[s_t] = np.eye(num_actions)[best_a]
+            if a_t != best_a:
                 break
-            W *= 1.0 / behavior_policy(s_t)[a_t]
+            W *= 1.0 / (1.0 / len(env.available_actions()))
 
     return pi, Q

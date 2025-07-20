@@ -1,187 +1,160 @@
-import os
 import time
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime
-from itertools import product
-from tqdm import tqdm
+import os
+import inspect
 
-from agents_for_secret_envs.dynamic_programming import policy_iteration, value_iteration
-from agents_for_secret_envs.monte_carlo_methods import (
-    on_policy_first_visit_mc_control, monte_carlo_es, off_policy_mc_control
-)
-from agents_for_secret_envs.temporal_difference_methods import sarsa, q_learning, expected_sarsa
-from agents_for_secret_envs.planning_methods import dyna_q, dyna_q_plus
+# Import des agents pour environnements secrets
+from agents_for_secret_envs.monte_carlo_methods import monte_carlo_es, on_policy_first_visit_mc_control, \
+    off_policy_mc_control
+from agents_for_secret_envs.planning_methods import dyna_q
+from agents_for_secret_envs.temporal_difference_methods import q_learning, sarsa, expected_sarsa
 
+# Import des environnements secrets
 from environments.secret_envs_wrapper import SecretEnv0, SecretEnv1, SecretEnv2, SecretEnv3
-from Utils.save_load_policy import save_policy
 
-# === Configurations ===
+# Dictionnaire des agents
 AGENTS = {
-    # "policy_iteration": policy_iteration,
-    # "value_iteration": value_iteration,
-    "mc_on_policy": on_policy_first_visit_mc_control,
     "mc_es": monte_carlo_es,
+    "mc_on_policy": on_policy_first_visit_mc_control,
     "mc_off_policy": off_policy_mc_control,
-    "sarsa": sarsa,
     "q_learning": q_learning,
+    "sarsa": sarsa,
     "expected_sarsa": expected_sarsa,
     "dyna_q": dyna_q,
-    "dyna_q_plus": dyna_q_plus,
 }
 
 ENVIRONMENTS = {
-    "SecretEnv2": SecretEnv2,
+    "SecretEnv0": SecretEnv0,
     "SecretEnv1": SecretEnv1,
+    "SecretEnv2": SecretEnv2,
     "SecretEnv3": SecretEnv3,
-    "SecretEnv0": SecretEnv0
 }
 
-HYPERPARAM_GRID = {
-    "gamma": [0.99],
-    "alpha": [0.1],
-    "epsilon": [0.1],
-    "theta": [1e-6],
-    "planning_steps": [10],
-    "kappa": [0.01],
-    "episodes": [5000]
+# Hyperparamètres fixes
+HYPERPARAMS = {
+    "episodes": 100,
+    "gamma": 0.9,
+    "epsilon": 0.1,
+    "alpha": 0.5,
+    "planning_steps": 10,
 }
 
 OUTPUT_DIR = "SecretReports"
-POLICY_DIR = os.path.join(OUTPUT_DIR, "Policies")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(POLICY_DIR, exist_ok=True)
 all_results = []
+env_results_dict = {}
 
 
-def evaluate_policy(env, policy, runs=5):
-    rewards = []
-    for _ in range(runs):
+def filter_hyperparams(agent_func, full_params):
+    sig = inspect.signature(agent_func)
+    return {k: v for k, v in full_params.items() if k in sig.parameters}
+
+
+def get_state_from_env(env):
+    if hasattr(env, "get_state"):
+        return env.get_state()
+    elif hasattr(env, "state") and not callable(env.state):
+        return env.state
+    elif hasattr(env, "state") and callable(env.state):
+        return env.state()
+    elif hasattr(env, "observation"):
+        return env.observation
+    else:
+        raise AttributeError(
+            f"L'environnement {env.__class__.__name__} ne fournit pas de méthode ou attribut d'état connu.")
+
+
+def evaluate_policy(env, policy):
+    rewards, steps_list = [], []
+    for _ in range(10):
         env.reset()
-        state = env.state_id()
-        total = 0
-        step = 0
-        max_steps = 1000
-        while not env.is_game_over() and step < max_steps:
-            if isinstance(policy, dict):
-                action = policy.get(state, 0)
-            else:
-                action = int(policy[state].argmax()) if state < len(policy) else 0
+        try:
+            state = get_state_from_env(env)
+        except Exception as e:
+            print(f"❌ Impossible de récupérer l'état initial : {e}")
+            return 0, [], 0
+
+        total, step = 0, 0
+        while not env.is_game_over() and step < 1000:
+            try:
+                action = policy.get(state, 0) if isinstance(policy, dict) else int(policy[state].argmax())
+            except Exception as e:
+                print(f"⚠️ Erreur lors du choix de l'action : {e}")
+                break
             env.step(action)
-            total = env.score()
-            state = env.state_id()
+            print(f"Step {step}, Score actuel: {env.score()}")
+            try:
+                state = get_state_from_env(env)
+            except:
+                break
+            total += env.score()
             step += 1
-        if step >= max_steps:
-            print("Épisode bloqué détecté dans evaluate_policy (max_steps atteint)")
         rewards.append(total)
-    return np.mean(rewards), np.std(rewards), rewards
+        steps_list.append(step)
+    return sum(rewards) / len(rewards), rewards, sum(steps_list) / len(steps_list)
 
 
 def run_experiments():
-    for env_name, env_cls in tqdm(ENVIRONMENTS.items(), desc="Environnements"):
-        env = env_cls()
+    output_path = os.path.join(OUTPUT_DIR, "secret_comparison_full.xlsx")
 
-        for agent_name, agent_func in tqdm(AGENTS.items(), desc=f"Agents ({env_name})", leave=False):
-            param_grid = list(product(
-                HYPERPARAM_GRID["gamma"],
-                HYPERPARAM_GRID["alpha"],
-                HYPERPARAM_GRID["epsilon"],
-                HYPERPARAM_GRID["theta"],
-                HYPERPARAM_GRID["planning_steps"],
-                HYPERPARAM_GRID["kappa"],
-                HYPERPARAM_GRID["episodes"]
-            ))
-            print(f"\n Entrainement de l'agent {agent_name} sur l'environnement {env_name}...")
+    for env_name, EnvClass in ENVIRONMENTS.items():
+        env = EnvClass()
+        env_results = []
 
-            for gamma, alpha, epsilon, theta, planning_steps, kappa, episodes in (
-                    tqdm(param_grid, desc=f"Hyperparams ({agent_name})", leave=False)):
+        for agent_name, agent_func in AGENTS.items():
+            try:
+                filtered_params = filter_hyperparams(agent_func, HYPERPARAMS)
+                env.reset()
+                print(f"\n⏳ Lancement : {agent_name} sur {env_name}")
+                start_time = time.time()
+                result = agent_func(env, **filtered_params)
+                elapsed_time = round(time.time() - start_time, 2)
 
-                print(f"Hyperparamètres de {agent_name} : "
-                      f"gamma={gamma}, alpha={alpha}, epsilon={epsilon}, "
-                      f"theta={theta}, planning_steps={planning_steps}, "
-                      f"kappa={kappa}, episodes={episodes}")
+                policy = result.get("policy") if isinstance(result, dict) else result[0]
+                mean_score, all_scores, mean_steps = evaluate_policy(env, policy)
+                std_score = pd.Series(all_scores).std()
 
-                kwargs = dict(
-                    gamma=gamma,
-                    alpha=alpha,
-                    epsilon=epsilon,
-                    theta=theta,
-                    planning_steps=planning_steps,
-                    kappa=kappa,
-                    episodes=episodes
-                )
+                res = {
+                    "agent": agent_name,
+                    "env": env_name,
+                    "mean_score": mean_score,
+                    "std_score": std_score,
+                    "mean_steps": mean_steps,
+                    "time": elapsed_time,
+                    **filtered_params,
+                }
 
-                try:
-                    if agent_name in ["policy_iteration", "value_iteration"]:
-                        policy, _ = agent_func(env, gamma=gamma, theta=theta)
+                env_results.append(res)
+                all_results.append(res)
+                print(f"✅ Succès {agent_name} sur {env_name}")
 
-                    elif agent_name == "mc_on_policy":
-                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma, epsilon=epsilon)
+            except Exception as e:
+                print(f"❌ Erreur pour {agent_name} sur {env_name} : {e}")
 
-                    elif agent_name == "mc_es":
-                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma)
+        df_env = pd.DataFrame(env_results)
+        env_results_dict[env_name] = df_env
 
-                    elif agent_name == "mc_off_policy":
-                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma)
+    # Écriture dans un seul fichier Excel
+    with pd.ExcelWriter(output_path, engine="openpyxl", mode="w") as writer:
+        for env_name, df in env_results_dict.items():
+            df.to_excel(writer, sheet_name=env_name, index=False)
 
-                    elif agent_name in ["sarsa", "q_learning", "expected_sarsa"]:
-                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma,
-                                               alpha=alpha, epsilon=epsilon)
+        df_all = pd.DataFrame(all_results)
+        df_all.to_excel(writer, sheet_name="RésuméGlobal", index=False)
 
-                    elif agent_name == "dyna_q":
-                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma,
-                                               alpha=alpha, epsilon=epsilon,
-                                               planning_steps=planning_steps)
+        if not df_all.empty:
+            try:
+                best_params = df_all.loc[df_all.groupby(["agent", "env"])["mean_score"].idxmax()]
+                best_params.to_excel(writer, sheet_name="BestParams", index=False)
+            except Exception as e:
+                print(f"⚠️ Erreur lors de la génération des BestParams : {e}")
+        else:
+            print("⚠️ Aucun résultat à inclure dans BestParams.")
 
-                    elif agent_name == "dyna_q_plus":
-                        policy, _ = agent_func(env, episodes=episodes, gamma=gamma,
-                                               alpha=alpha, epsilon=epsilon,
-                                               planning_steps=planning_steps, kappa=kappa)
-
-                    else:
-                        raise ValueError(f"Agent non supporté: {agent_name}")
-
-                    mean_score, std_score, scores = evaluate_policy(env, policy)
-
-                    filename = f"policy_{env_name}_{agent_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pkl"
-                    save_policy(policy, os.path.join(POLICY_DIR, filename))
-
-                    all_results.append({
-                        "agent": agent_name,
-                        "env": env_name,
-                        "mean_score": mean_score,
-                        "std_score": std_score,
-                        **kwargs
-                    })
-
-                except Exception as e:
-                    print(f"Erreur avec {agent_name} sur {env_name} : {e}")
-
-    df = pd.DataFrame(all_results)
-    xlsx_path = os.path.join(OUTPUT_DIR, "secret_comparison.xlsx")
-    with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
-        df.to_excel(writer, sheet_name="Résultats", index=False)
-        best_params = df.loc[df.groupby(["agent", "env"])["mean_score"].idxmax()]
-        best_params.to_excel(writer, sheet_name="BestParams", index=False)
-
-    # Génération des graphiques de performance
-    for env_name in df["env"].unique():
-        plt.figure(figsize=(10, 6))
-        df_env = df[df["env"] == env_name]
-        sns.barplot(data=df_env, x="agent", y="mean_score", ci="sd", palette="viridis")
-        plt.title(f"Performances des agents sur {env_name}")
-        plt.ylabel("Score moyen")
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.savefig(os.path.join(OUTPUT_DIR, f"{env_name}_performance.png"))
-        plt.close()
-
-    print("\n Résumé global exporté en .xlsx avec toutes les politiques et graphiques sauvegardés.")
+    print(f"\n✅ Fichier Excel unique généré : {output_path}")
 
 
 if __name__ == "__main__":
     start = time.time()
     run_experiments()
-    print(f"\n Expériences terminées en {time.time() - start:.2f} secondes.")
+    print(f"\n⏱️ Terminé en {time.time() - start:.2f} secondes.")

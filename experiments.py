@@ -43,13 +43,13 @@ ENVIRONMENTS = {
 }
 
 HYPERPARAM_GRID = {
-    "gamma": [0.90, 0.95, 0.98, 0.99, 0.995],
-    "alpha": [0.01, 0.05, 0.1, 0.3, 0.5],
-    "epsilon": [0.01, 0.05, 0.1, 0.2, 0.3],
-    "theta": [0.001, 0.0001, 0.00001, 0.000001, 0.0000001],
-    "planning_steps": [0, 5, 10, 20, 50],
-    "kappa": [0.0, 0.0001, 0.001, 0.01, 0.1],
-    "episodes": [100, 500, 1000, 2000, 5000]
+    "gamma": [0.90, 0.95, 0.98, 0.99],
+    "alpha": [0.01, 0.05, 0.1, 0.5],
+    "epsilon": [0.01, 0.05, 0.1, 0.2],
+    "theta": [0.001, 0.0001, 0.00001, 0.000001],
+    "planning_steps": [5, 10, 20, 50],
+    "kappa": [0.0, 0.0001, 0.001, 0.1],
+    "episodes": [500]
 }
 
 OUTPUT_DIR = "../Reports"
@@ -125,7 +125,8 @@ def run_experiments():
                     print(f"\nErreur avec {agent_name} sur {env_name} : {e}")
 
         df_env = pd.DataFrame(env_results)
-        with pd.ExcelWriter(xlsx_path, engine="openpyxl", mode="a" if os.path.exists(xlsx_path) else "w") as writer:
+        with pd.ExcelWriter(xlsx_path, engine="openpyxl", mode="a" if os.path.exists(xlsx_path) else "w",
+                            if_sheet_exists="replace") as writer:
             df_env.to_excel(writer, sheet_name=f"{env_name}", index=False)
         all_results.extend(env_results)
 
