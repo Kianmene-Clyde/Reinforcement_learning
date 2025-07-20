@@ -138,7 +138,7 @@ class MontyHallRunnerLv2:
                 color = GREEN if i == self.env.winning_door else GREY
                 pygame.draw.rect(self.screen, color, (60 + i * 140, 100, CELL_WIDTH, 150))
                 self.screen.blit(self.font.render(str(i), True, BLACK), (100 + i * 140, 160))
-            result = "✅ GAGNÉ !" if reward == 1.0 else "❌ PERDU"
+            result = "GAGNÉ !" if reward == 1.0 else "PERDU"
             label2 = self.font.render(f"{result} | R pour rejouer | Échap pour quitter", True, BLACK)
             self.screen.blit(label2, (20, 60))
 
@@ -165,7 +165,7 @@ class MontyHallRunnerLv2:
     def _run_agent(self):
         episode = 1
         while True:
-            # 🔄 Traitement des événements pygame pour éviter les freezes
+            # Traitement des événements pygame pour éviter les freezes
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -185,7 +185,7 @@ class MontyHallRunnerLv2:
                 action = self.policy.get(state, 0)
                 state, reward = self.env.step(state, action)
 
-            self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
+            self._draw(state, reward, f"Terminé | Épisode {episode}")
             self.results.append(reward)
 
             export_results(
@@ -220,6 +220,6 @@ class MontyHallRunnerLv2:
                             if a in actions:
                                 state, reward = self.env.step(state, a)
                 pygame.time.delay(200)
-            self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
+            self._draw(state, reward, f"Terminé | Épisode {episode}")
             episode += 1
             self._wait_for_restart()

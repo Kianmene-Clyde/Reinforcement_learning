@@ -168,7 +168,7 @@ class LineWorldRunner:
                 pygame.time.delay(400)
 
                 if state in self.env.terminal_states:
-                    self._draw(self.policy, total_reward, episode, "✅ Terminé - appuyez sur R")
+                    self._draw(self.policy, total_reward, episode, "Terminé - appuyez sur R")
                     break
 
                 if state in self.policy:
@@ -198,7 +198,7 @@ class LineWorldRunner:
 
             self._draw(self.policy, total_reward, episode, "Terminé - appuyez sur R")
 
-            # ✅ EXPORT des résultats
+            # EXPORT des résultats
             export_results(
                 agent_name=self.agent_name,
                 env_name="LineWorld",
@@ -234,6 +234,6 @@ class LineWorldRunner:
                         self.env.agent_pos = state
                 if state in self.env.terminal_states:
                     break
-            self._draw({}, total_reward, episode, "✅ Terminé - appuyez sur R")
+            self._draw({}, total_reward, episode, "Terminé - appuyez sur R")
             episode += 1
             self._wait_for_restart()

@@ -14,7 +14,7 @@ from agents.temporal_difference_methods import sarsa, q_learning, expected_sarsa
 from agents.planning_methods import dyna_q, dyna_q_plus
 
 # Imports des environnements
-from environments.grid_world_env_headless import GridWorldEnvHeadless
+from environments.grid_world_env import GridWorldEnv
 from environments.line_world_env import LineWorldEnv
 from environments.monty_hall_lv1_env import MontyHallEnv
 from environments.monty_hall_lv2_env import MontyHallEnvLv2
@@ -29,9 +29,9 @@ AGENTS = {
     "mc_off_policy": off_policy_mc_control,
     "sarsa": sarsa,
     "q_learning": q_learning,
-    "expected_sarsa": expected_sarsa,
-    "dyna_q": dyna_q,
-    "dyna_q_plus": dyna_q_plus,
+    # "expected_sarsa": expected_sarsa,
+    # "dyna_q": dyna_q,
+    # "dyna_q_plus": dyna_q_plus,
 }
 
 ENVIRONMENTS = {
@@ -39,20 +39,20 @@ ENVIRONMENTS = {
     "monty_hall_lv1": MontyHallEnv,
     "monty_hall_lv2": MontyHallEnvLv2,
     "rps_game": RPSGameEnv,
-    "grid_world": GridWorldEnvHeadless
+    "grid_world": GridWorldEnv
 }
 
 HYPERPARAM_GRID = {
-    "gamma": [0.90, 0.95, 0.98, 0.99],
+    "gamma": [0.90, 0.98, 0.99],
     "alpha": [0.01, 0.05, 0.1, 0.5],
     "epsilon": [0.01, 0.05, 0.1, 0.2],
-    "theta": [0.001, 0.0001, 0.00001, 0.000001],
-    "planning_steps": [5, 10, 20, 50],
-    "kappa": [0.0, 0.0001, 0.001, 0.1],
+    "theta": [0.001, 0.0001, 0.00001, ],
+    "planning_steps": [5, 10, 20],
+    "kappa": [0.0, 0.001, 0.1],
     "episodes": [500]
 }
 
-OUTPUT_DIR = "../Reports"
+OUTPUT_DIR = "../../Reports"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 all_results = []
 
@@ -64,7 +64,7 @@ def evaluate_policy(env, policy):
         env.reset()
         state = env.get_state()
         total, step = 0, 0
-        while not env.is_game_over() and step < 1000:
+        while not env.is_game_over() and step < 100:
             action = policy.get(state, 0) if isinstance(policy, dict) else int(policy[state].argmax())
             env.step(action)
             total += env.score()
@@ -94,6 +94,8 @@ def get_param_combinations(agent_name):
 
 def run_experiments():
     xlsx_path = os.path.join(OUTPUT_DIR, "global_comparison.xlsx")
+    checkpoint_path = os.path.join(OUTPUT_DIR, "checkpoint_results.xlsx")
+
     for env_name, env_cls in tqdm(ENVIRONMENTS.items(), desc="Environnements"):
         env = env_cls()
         env_results = []
@@ -111,6 +113,7 @@ def run_experiments():
                     elapsed = time.time() - start_time
                     mean_score, scores, mean_steps = evaluate_policy(env, policy)
                     std_score = pd.Series(scores).std()
+
                     result = {
                         "agent": agent_name,
                         "env": env_name,
@@ -120,21 +123,35 @@ def run_experiments():
                         "time": round(elapsed, 2),
                         **params
                     }
+
+                    # === Ajout au tableau principal en mémoire ===
                     env_results.append(result)
+                    all_results.append(result)
+
+                    # === Sauvegarde intermédiaire ===
+                    df_checkpoint = pd.DataFrame([result])
+                    with pd.ExcelWriter(checkpoint_path, engine="openpyxl",
+                                        mode="a" if os.path.exists(checkpoint_path) else "w",
+                                        if_sheet_exists="overlay") as writer:
+                        df_checkpoint.to_excel(writer, sheet_name="Checkpoint", index=False,
+                                               header=not os.path.exists(checkpoint_path))
+
                 except Exception as e:
                     print(f"\nErreur avec {agent_name} sur {env_name} : {e}")
 
+        # === Sauvegarde par environnement ===
         df_env = pd.DataFrame(env_results)
         with pd.ExcelWriter(xlsx_path, engine="openpyxl", mode="a" if os.path.exists(xlsx_path) else "w",
                             if_sheet_exists="replace") as writer:
             df_env.to_excel(writer, sheet_name=f"{env_name}", index=False)
-        all_results.extend(env_results)
 
+    # === Résumé final ===
     df_all = pd.DataFrame(all_results)
     with pd.ExcelWriter(xlsx_path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
         df_all.to_excel(writer, sheet_name="RésuméGlobal", index=False)
         best_params = df_all.loc[df_all.groupby(["agent", "env"])["mean_score"].idxmax()]
         best_params.to_excel(writer, sheet_name="BestParams", index=False)
+
     print("\nTous les résultats ont été sauvegardés.")
 
 

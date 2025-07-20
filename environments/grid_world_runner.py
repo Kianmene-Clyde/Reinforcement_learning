@@ -188,7 +188,7 @@ class GridWorldRunner:
 
                 pygame.time.delay(300)
                 if self.env.is_terminal(state):
-                    self._draw(self.policy, total_reward, episode, "✅ Terminé - appuyez sur R")
+                    self._draw(self.policy, total_reward, episode, "Terminé - appuyez sur R")
                     break
                 action = self.policy[state]
                 next_state, reward = self.env.transition(state, action)
@@ -196,7 +196,7 @@ class GridWorldRunner:
                 self.env.agent_pos = next_state
                 state = next_state
 
-            # ✅ Export des résultats
+            # Export des résultats
             export_results(
                 agent_name=self.agent_name,
                 env_name="GridWorld",
@@ -237,6 +237,6 @@ class GridWorldRunner:
                         state = next_state
                 if self.env.is_terminal(state):
                     break
-            self._draw({}, total_reward, episode, "✅ Terminé - appuyez sur R")
+            self._draw({}, total_reward, episode, "Terminé - appuyez sur R")
             episode += 1
             self._wait_for_restart()

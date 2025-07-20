@@ -5,7 +5,7 @@ class LineWorldEnv:
         self.terminal_states = [0, length - 1]
         self.agent_pos = 2
 
-        # ✅ Interface standard pour agents tabulaires
+        # Interface standard pour agents tabulaires
         self.num_states = length
         self.num_actions = 2
         self._score = 0  # utile pour TD

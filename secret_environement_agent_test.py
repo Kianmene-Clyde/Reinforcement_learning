@@ -3,7 +3,6 @@ import time
 import pandas as pd
 from datetime import datetime
 
-from agents_for_secret_envs.dynamic_programming import policy_iteration, value_iteration
 from agents_for_secret_envs.monte_carlo_methods import on_policy_first_visit_mc_control, monte_carlo_es, \
     off_policy_mc_control
 from agents_for_secret_envs.planning_methods import dyna_q, dyna_q_plus
@@ -22,8 +21,6 @@ environments = [
 
 # Liste des agents avec leurs hyperparamètres
 agents = [
-    ("Policy Iteration", lambda env: policy_iteration(env, gamma=0.99, max_iterations=100)),
-    ("Value Iteration", lambda env: value_iteration(env, gamma=0.99, theta=1e-6)),
     ("Q-Learning", lambda env: q_learning(env, alpha=0.1, gamma=0.99, epsilon=0.1, episodes=5000)),
     ("SARSA", lambda env: sarsa(env, alpha=0.1, gamma=0.99, epsilon=0.1, episodes=5000)),
     ("Expected SARSA", lambda env: expected_sarsa(env, alpha=0.1, gamma=0.99, epsilon=0.1, episodes=5000)),

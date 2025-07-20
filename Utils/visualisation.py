@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Charger les résultats
-file_path = "../Reports/global_comparison.xlsx"
+file_path = "../../Reports/global_comparison.xlsx"
 sheet_name = "RésuméGlobal"
 output_dir = "../Reports/Visualisations"
 os.makedirs(output_dir, exist_ok=True)

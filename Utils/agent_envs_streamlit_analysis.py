@@ -7,10 +7,10 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 st.set_page_config(layout="wide")
-st.title("🧠 RL Experiments Dashboard")
+st.title("RL Experiments Dashboard")
 
 # === Chargement des données ===
-DATA_PATH = "../Reports/global_comparison.xlsx"
+DATA_PATH = "D:/school/reinforcement_learning/Reports/global_comparison.xlsx"
 
 
 @st.cache_data
@@ -26,16 +26,16 @@ sheets, df_all, df_best = load_data()
 
 # === SIDEBAR : Paramètres ===
 st.sidebar.title("🔧 Paramètres")
-selected_env = st.sidebar.selectbox("🌍 Choisir un environnement", list(sheets.keys()))
+selected_env = st.sidebar.selectbox("Choisir un environnement", list(sheets.keys()))
 df_env = sheets[selected_env]
 
 agents = df_env["agent"].unique().tolist()
-selected_agents = st.sidebar.multiselect("🤖 Sélectionner les agents", agents, default=agents)
+selected_agents = st.sidebar.multiselect("Sélectionner les agents", agents, default=agents)
 
 filtered_df = df_env[df_env["agent"].isin(selected_agents)]
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("🎚️ Filtrage des hyperparamètres")
+st.sidebar.markdown("Filtrage des hyperparamètres")
 
 hyperparams = ["gamma", "alpha", "epsilon", "theta", "planning_steps", "kappa", "episodes"]
 for param in hyperparams:
@@ -46,10 +46,10 @@ for param in hyperparams:
             filtered_df = filtered_df[filtered_df[param].isin(selected_values)]
 
 # === MAIN : Résultats ===
-st.markdown(f"### 📊 Résultats pour l'environnement `{selected_env}`")
+st.markdown(f"### Résultats pour l'environnement `{selected_env}`")
 
 # === Barplot des performances ===
-st.subheader("🎯 Score moyen par agent")
+st.subheader("Score moyen par agent")
 plt.figure(figsize=(10, 5))
 sns.barplot(data=filtered_df, x="agent", y="mean_score", ci="sd", palette="viridis")
 plt.xticks(rotation=45)
@@ -60,7 +60,7 @@ plt.clf()
 
 # === Barplot des steps moyens ===
 if 'mean_steps' in filtered_df.columns:
-    st.subheader("🚶 Steps moyens par épisode (efficacité)")
+    st.subheader("Steps moyens par épisode (efficacité)")
     plt.figure(figsize=(10, 5))
     sns.barplot(data=filtered_df, x="agent", y="mean_steps", palette="mako")
     plt.xticks(rotation=45)
@@ -71,13 +71,13 @@ if 'mean_steps' in filtered_df.columns:
 
 # === Courbes d'apprentissage (score moyen vs episodes) ===
 if 'episodes' in filtered_df.columns:
-    st.subheader("📈 Courbes d’apprentissage (Score vs Épisodes)")
+    st.subheader("Courbes d’apprentissage (Score vs Épisodes)")
     fig = px.line(filtered_df, x="episodes", y="mean_score", color="agent", markers=True,
                   title="Score moyen en fonction du nombre d'épisodes")
     st.plotly_chart(fig, use_container_width=True)
 
 # === Radar de performances (normalisées) ===
-st.subheader("📊 Radar de performance des agents")
+st.subheader("Radar de performance des agents")
 if not filtered_df.empty:
     radar_df = filtered_df.groupby("agent")[["mean_score", "mean_steps", "time"]].mean().reset_index()
     # Normalisation des valeurs
@@ -99,7 +99,7 @@ if not filtered_df.empty:
 
 # === Scatter score vs steps ===
 if 'mean_steps' in filtered_df.columns:
-    st.subheader("📉 Comparaison score vs steps moyens")
+    st.subheader("Comparaison score vs steps moyens")
     plt.figure(figsize=(8, 6))
     sns.scatterplot(data=filtered_df, x="mean_steps", y="mean_score", hue="agent", s=120)
     for i, row in filtered_df.iterrows():
@@ -111,9 +111,9 @@ if 'mean_steps' in filtered_df.columns:
     plt.clf()
 
 # === Tableau détaillé ===
-st.subheader("📄 Détails des essais")
+st.subheader("Détails des essais")
 st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
 
 # === Meilleurs paramètres ===
-st.subheader("🏆 Meilleurs agents (global)")
+st.subheader("Meilleurs agents (global)")
 st.dataframe(df_best[df_best["env"] == selected_env].reset_index(drop=True))

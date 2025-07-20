@@ -8,10 +8,11 @@ import plotly.graph_objects as go
 
 # Configuration de la page
 st.set_page_config(layout="wide")
-st.title("🕵️ Secret RL Experiments Dashboard")
+st.title("Secret RL Experiments Dashboard")
 
 # === Chargement des données ===
-DATA_PATH = "SecretReports/secret_comparison.xlsx"
+DATA_PATH = "SecretReports/secret_comparison_full.xlsx"
+
 
 @st.cache_data
 def load_data():
@@ -21,11 +22,12 @@ def load_data():
     best_df = xls.parse("BestParams")
     return sheets, global_df, best_df
 
+
 sheets, df_all, df_best = load_data()
 
 # === SIDEBAR : Paramètres ===
-st.sidebar.title("🔧 Paramètres")
-selected_env = st.sidebar.selectbox("🧪 Choisir un environnement secret", list(sheets.keys()))
+st.sidebar.title("Paramètres")
+selected_env = st.sidebar.selectbox("Choisir un environnement secret", list(sheets.keys()))
 df_env = sheets[selected_env]
 
 agents = df_env["agent"].unique().tolist()
@@ -34,7 +36,7 @@ selected_agents = st.sidebar.multiselect("🤖 Sélectionner les agents", agents
 filtered_df = df_env[df_env["agent"].isin(selected_agents)]
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("🎚️ Filtrage des hyperparamètres")
+st.sidebar.markdown("Filtrage des hyperparamètres")
 
 hyperparams = ["gamma", "alpha", "epsilon", "theta", "planning_steps", "kappa", "episodes"]
 for param in hyperparams:
@@ -45,10 +47,10 @@ for param in hyperparams:
             filtered_df = filtered_df[filtered_df[param].isin(selected_values)]
 
 # === MAIN : Résultats ===
-st.markdown(f"### 📊 Résultats pour l'environnement secret `{selected_env}`")
+st.markdown(f"### Résultats pour l'environnement secret `{selected_env}`")
 
 # === Barplot des scores ===
-st.subheader("🎯 Score moyen par agent")
+st.subheader("Score moyen par agent")
 plt.figure(figsize=(10, 5))
 sns.barplot(data=filtered_df, x="agent", y="mean_score", ci="sd", palette="viridis")
 plt.xticks(rotation=45)
@@ -59,7 +61,7 @@ plt.clf()
 
 # === Barplot des steps ===
 if 'mean_steps' in filtered_df.columns:
-    st.subheader("🚶 Steps moyens par épisode")
+    st.subheader("Steps moyens par épisode")
     plt.figure(figsize=(10, 5))
     sns.barplot(data=filtered_df, x="agent", y="mean_steps", palette="mako")
     plt.xticks(rotation=45)
@@ -70,13 +72,13 @@ if 'mean_steps' in filtered_df.columns:
 
 # === Courbes Score vs Épisodes ===
 if 'episodes' in filtered_df.columns:
-    st.subheader("📈 Courbes d’apprentissage (Score vs Épisodes)")
+    st.subheader("Courbes d’apprentissage (Score vs Épisodes)")
     fig = px.line(filtered_df, x="episodes", y="mean_score", color="agent", markers=True,
                   title="Score moyen en fonction du nombre d'épisodes")
     st.plotly_chart(fig, use_container_width=True)
 
 # === Radar de performance ===
-st.subheader("📊 Radar de performance (normalisé)")
+st.subheader("Radar de performance (normalisé)")
 if not filtered_df.empty:
     radar_df = filtered_df.groupby("agent")[["mean_score", "mean_steps", "time"]].mean().reset_index()
     radar_norm = radar_df.copy()
@@ -97,7 +99,7 @@ if not filtered_df.empty:
 
 # === Scatter Score vs Steps ===
 if 'mean_steps' in filtered_df.columns:
-    st.subheader("📉 Score vs Steps")
+    st.subheader("Score vs Steps")
     plt.figure(figsize=(8, 6))
     sns.scatterplot(data=filtered_df, x="mean_steps", y="mean_score", hue="agent", s=120)
     for _, row in filtered_df.iterrows():
@@ -108,10 +110,28 @@ if 'mean_steps' in filtered_df.columns:
     st.pyplot(plt.gcf())
     plt.clf()
 
+# === Heatmap des scores par environnement et agent (résumé global) ===
+st.subheader("Heatmap des performances moyennes par environnement")
+
+# Construction du pivot à partir de la feuille RésuméGlobal
+heatmap_df = df_all.pivot_table(index='env', columns='agent', values='mean_score')
+
+# Vérifier qu'il y a bien des données
+if not heatmap_df.empty:
+    plt.figure(figsize=(12, 6))
+    sns.heatmap(heatmap_df, annot=True, fmt=".2f", cmap="viridis", cbar_kws={'label': 'Score Moyen'})
+    plt.title("Performance des Agents par Environnement Secret")
+    plt.ylabel("Environnement")
+    plt.xlabel("Agent")
+    st.pyplot(plt.gcf())
+    plt.clf()
+else:
+    st.info("Aucune donnée disponible pour générer la heatmap.")
+
 # === Détails des essais ===
-st.subheader("📄 Détails des expérimentations")
+st.subheader("Détails des expérimentations")
 st.dataframe(filtered_df.reset_index(drop=True), use_container_width=True)
 
 # === Meilleurs paramètres globaux ===
-st.subheader("🏆 Meilleurs agents (global)")
+st.subheader("Meilleurs agents (global)")
 st.dataframe(df_best[df_best["env"] == selected_env].reset_index(drop=True))

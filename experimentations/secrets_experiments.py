@@ -39,7 +39,7 @@ HYPERPARAMS = {
     "planning_steps": 10,
 }
 
-OUTPUT_DIR = "SecretReports"
+OUTPUT_DIR = "../SecretReports"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 all_results = []
 env_results_dict = {}
@@ -71,7 +71,7 @@ def evaluate_policy(env, policy):
         try:
             state = get_state_from_env(env)
         except Exception as e:
-            print(f"❌ Impossible de récupérer l'état initial : {e}")
+            print(f"Impossible de récupérer l'état initial : {e}")
             return 0, [], 0
 
         total, step = 0, 0
@@ -79,7 +79,7 @@ def evaluate_policy(env, policy):
             try:
                 action = policy.get(state, 0) if isinstance(policy, dict) else int(policy[state].argmax())
             except Exception as e:
-                print(f"⚠️ Erreur lors du choix de l'action : {e}")
+                print(f"Erreur lors du choix de l'action : {e}")
                 break
             env.step(action)
             print(f"Step {step}, Score actuel: {env.score()}")
@@ -105,7 +105,7 @@ def run_experiments():
             try:
                 filtered_params = filter_hyperparams(agent_func, HYPERPARAMS)
                 env.reset()
-                print(f"\n⏳ Lancement : {agent_name} sur {env_name}")
+                print(f"\nLancement : {agent_name} sur {env_name}")
                 start_time = time.time()
                 result = agent_func(env, **filtered_params)
                 elapsed_time = round(time.time() - start_time, 2)
@@ -126,10 +126,10 @@ def run_experiments():
 
                 env_results.append(res)
                 all_results.append(res)
-                print(f"✅ Succès {agent_name} sur {env_name}")
+                print(f"Succès {agent_name} sur {env_name}")
 
             except Exception as e:
-                print(f"❌ Erreur pour {agent_name} sur {env_name} : {e}")
+                print(f"Erreur pour {agent_name} sur {env_name} : {e}")
 
         df_env = pd.DataFrame(env_results)
         env_results_dict[env_name] = df_env
@@ -147,14 +147,14 @@ def run_experiments():
                 best_params = df_all.loc[df_all.groupby(["agent", "env"])["mean_score"].idxmax()]
                 best_params.to_excel(writer, sheet_name="BestParams", index=False)
             except Exception as e:
-                print(f"⚠️ Erreur lors de la génération des BestParams : {e}")
+                print(f"Erreur lors de la génération des BestParams : {e}")
         else:
-            print("⚠️ Aucun résultat à inclure dans BestParams.")
+            print("Aucun résultat à inclure dans BestParams.")
 
-    print(f"\n✅ Fichier Excel unique généré : {output_path}")
+    print(f"\nFichier Excel unique généré : {output_path}")
 
 
 if __name__ == "__main__":
     start = time.time()
     run_experiments()
-    print(f"\n⏱️ Terminé en {time.time() - start:.2f} secondes.")
+    print(f"\nTerminé en {time.time() - start:.2f} secondes.")

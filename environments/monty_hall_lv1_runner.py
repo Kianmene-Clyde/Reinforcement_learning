@@ -147,7 +147,7 @@ class MontyHallRunner:
                 self.screen.blit(tag, (110 + i * 150, 220))
 
         if isinstance(state, tuple) and state[0] == "done":
-            result = "✅ GAGNÉ !" if reward == 1.0 else "❌ PERDU"
+            result = "GAGNÉ !" if reward == 1.0 else "PERDU"
             label2 = self.font.render(f"{result} | R pour rejouer", True, BLACK)
             self.screen.blit(label2, (20, 60))
 
@@ -214,6 +214,6 @@ class MontyHallRunner:
                                 next_state, reward = self.env.step(a)
                                 state = next_state
                 pygame.time.delay(200)
-            self._draw(state, reward, f"✅ Terminé | Épisode {episode}")
+            self._draw(state, reward, f"Terminé | Épisode {episode}")
             episode += 1
             self._wait_for_restart()

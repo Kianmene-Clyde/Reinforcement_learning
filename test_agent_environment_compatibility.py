@@ -27,7 +27,7 @@ def get_agent_function(agent_name, env_name):
     elif agent_name == "First visit Monte Carlo":
         return lambda env: on_policy_first_visit_mc_control(env, episodes=10)
     elif agent_name == "Monte Carlo ES":
-        # ⚠️ Réduction des épisodes sur GridWorld
+        # Réduction des épisodes sur GridWorld
         if env_name == "GridWorld":
             return lambda env: monte_carlo_es(env, episodes=2)
         else:

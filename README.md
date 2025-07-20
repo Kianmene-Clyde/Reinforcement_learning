@@ -1,18 +1,19 @@
-# 🤖 Projet Apprentissage par Renforcement (Reinforcement Learning)
+# Projet Apprentissage par Renforcement (Reinforcement Learning)
 
-## 🎯 Objectif pédagogique
+## Objectif pédagogique
 
 Ce projet vise à :
 
-- Implémenter et comparer des **algorithmes fondamentaux d'apprentissage par renforcement (RL)**.
-- Appliquer ces agents à plusieurs **environnements conçus sur mesure** (LineWorld, GridWorld, Monty Hall, etc.).
-- Étudier l'**impact des hyperparamètres** sur les performances des politiques apprises.
-- Identifier les **meilleures stratégies** pour chaque environnement.
+- Implémenter et comparer des algorithmes fondamentaux d'apprentissage par renforcement (RL).
+- Appliquer ces agents à plusieurs environnements conçus sur mesure (LineWorld, GridWorld, Monty Hall, etc.) et sur des
+  environnement secrets.
+- Étudier l'impact des hyperparamètres sur les performances des politiques apprises.
+- Identifier les meilleures stratégies pour chaque environnement.
 - Savoir quand et pourquoi utiliser chaque méthode (DP, Monte Carlo, TD, Planning).
 
 ---
 
-## 🧩 Structure du projet
+## Structure du projet
 
 ```
 RL_Project/
@@ -44,18 +45,18 @@ RL_Project/
 
 ---
 
-## 🧠 Agents implémentés
+## Agents implémentés
 
 | Catégorie           | Méthodes                                                                      |
 |---------------------|-------------------------------------------------------------------------------|
 | Dynamic Programming | `policy_iteration`, `value_iteration`                                         |
 | Monte Carlo         | `on_policy_first_visit_mc_control`, `monte_carlo_es`, `off_policy_mc_control` |
-| Temporal Difference | `sarsa`, `q_learning`, `expected_sarsa` (optionnel)                           |
-| Planning            | `dyna_q`, `dyna_q_plus` (optionnel)                                           |
+| Temporal Difference | `sarsa`, `q_learning`, `expected_sarsa`                                       |
+| Planning            | `dyna_q`, `dyna_q_plus`                                                       |
 
 ---
 
-## 🌍 Environnements simulés
+## Environnements simulés
 
 | Nom             | Description courte                                                  |
 |-----------------|---------------------------------------------------------------------|
@@ -66,27 +67,28 @@ RL_Project/
 | RPS Game        | Jeu Pierre-Feuille-Ciseaux sur 2 tours, avec adversaire stratégique |
 | SecretEnv (0–3) | Environnements mystères fournis par l'enseignant en fin de projet   |
 
-✅ Tous les environnements incluent :
+Tous les environnements user made incluent :
 
-- une **interface Pygame**
-- un mode **manuel (humain)** et **automatique (agent entraîné)**
-- une **visualisation pas-à-pas**
-- un affichage **des flèches de politique** ou **résultats interactifs**
+- une interface Pygame
+- un mode manuel (humain) et automatique (agent entraîné)
+- une visualisation pas-à-pas
+- un affichage des flèches de politique ou résultats interactifs
 
 ---
 
-## ⚙️ Méthodologie expérimentale
+## Méthodologie expérimentale
 
-- Tous les **agents sont testés sur tous les environnements**
-- Une **grille d'hyperparamètres** est explorée automatiquement (`experiments.py`)
-- Les **scores moyens et paramètres optimaux** sont exportés dans `Reports/global_comparison.xlsx`
-- Un script de **visualisation CLI** permet de générer tous les **graphes utiles** (boxplots, heatmaps, courbes,
+- Tous les agents sont testés sur tous les environnements**
+- Une grille d'hyperparamètres est explorée automatiquement pour chaque famille d'agents :
+- Les scores moyens et paramètres optimaux sont exportés dans `Reports/global_comparison.xlsx` pour les environnemnt
+  user made et dand `SecretReports/secret_comparison.xlsx` pour les environnements secrets.
+- Un script de visualisation permet de générer tous les graphes pertinents (boxplots, heatmaps, courbes,
   corrélations)
-- Les **politiques apprises sont sauvegardables** et **réutilisables**
+- Les politiques apprises sont sauvegardables et réutilisables
 
 ---
 
-## 💾 Sauvegarde / Chargement de politiques
+## Sauvegarde / Chargement de politiques
 
 ```python
 from Utils.save_load_policy import save_policy, load_policy
@@ -98,11 +100,11 @@ save_policy(policy, "policy_gridworld_qlearning.pkl")
 policy = load_policy("policy_gridworld_qlearning.pkl")
 ```
 
-➡️ Permet de **rejouer une stratégie sans réentraînement** (utile pour la soutenance).
+➡Permet de rejouer une stratégie sans réentraînement.
 
 ---
 
-## 📊 Visualisation des résultats
+## Visualisation des résultats
 
 Lancer :
 
@@ -112,16 +114,16 @@ python utils/visualize_results.py
 
 Permet de générer :
 
-- 📦 Boxplots par agent et environnement
-- 🔥 Heatmaps hyperparamètres (alpha vs epsilon, etc.)
-- 📈 Courbes de convergence (score vs épisodes)
-- 🔍 Corrélation entre hyperparamètres et performance
+-  Boxplots par agent et environnement
+-  Heatmaps hyperparamètres (alpha vs epsilon, etc.)
+-  Courbes de convergence (score vs épisodes)
+-  Corrélation entre hyperparamètres et performance
 
 Toutes les images sont stockées dans `Reports/Visualisations/`.
 
 ---
 
-## 🧠 Interprétation des résultats
+## Interprétation des résultats
 
 | Agent              | Environnements préférés        | Explication                                         |
 |--------------------|--------------------------------|-----------------------------------------------------|
@@ -129,48 +131,17 @@ Toutes les images sont stockées dans `Reports/Visualisations/`.
 | `q_learning`       | `monty_hall_lv1`, `rps_game`   | efficace avec exploration contrôlée                 |
 | `dyna_q_plus`      | `monty_hall_lv2`, `grid_world` | avantage avec planification et exploration différée |
 
----
 
-## 🎓 Soutenance recommandée
+# Résumé des Résultats des Expériences RL
 
-**Slides à inclure :**
-
-- 🎯 Objectif du projet
-- 🧠 Méthodologie (exploration de l’espace des hyperparamètres)
-- 📈 Résultats comparés (tableaux + graphes)
-- ✅ Démonstration live via `main.py` (politique sauvegardée)
-- 🤔 Interprétation et perspectives
-
----
-
-## 📦 Contenu à rendre
-
-- ✅ Code source
-- ✅ Rapport final avec graphiques
-- ✅ Fichier `.xlsx` des scores et paramètres
-- ✅ Slides de soutenance
-- ✅ Politiques sauvegardées
-- ✅ Screenshots si nécessaire
-
----
-
-## 👨‍🏫 Contact pédagogique
-
-- **Nom** : Nicolas VIDAL
-- **Email** : [nvidal@myges.fr](mailto:nvidal@myges.fr)
-
----
-
-# 🧪 Résumé des Résultats des Expériences RL
-
-## 🔍 Objectif
+## Objectif
 
 Comparer les performances de différents agents RL sur plusieurs environnements avec variation d'hyperparamètres pour
 identifier les meilleures combinaisons.
 
 ---
 
-## ✅ Meilleurs Couples Agent / Environnement
+## Meilleurs Couples Agent / Environnement
 
 | Environnement  | Agent Optimal    | Score Moyen | Hyperparamètres  |
 |----------------|------------------|-------------|------------------|
@@ -180,11 +151,9 @@ identifier les meilleures combinaisons.
 | Monty Hall LV2 | Dyna-Q+          | XX.XX       | planning=10, ... |
 | RPS Game       | Expected SARSA   | XX.XX       | alpha=0.5, ...   |
 
-> *Ces résultats sont extraits automatiquement de `BestParams` généré par `experiments.py`.*
-
 ---
 
-## 📈 Analyse Visuelle Automatique
+## Analyse Visuelle Automatique
 
 Lance `visualize_results.py` pour :
 
@@ -195,23 +164,10 @@ Lance `visualize_results.py` pour :
 
 ---
 
-## 🗂️ Recommandations
 
-- Reutilise les politiques optimales sauvegardées (`Reports/Policies/*.pkl`)
-- Priorise les algorithmes par type d’environnement :
-    - DP pour environnements à faible complexité
-    - MC/TD pour environnement stochastique
-    - Dyna pour environnements nécessitant du planning
-
----
-
-## 📦 Export
+## Export
 
 - Résultats complets : `Reports/global_comparison.xlsx`
 - Graphiques : `Reports/Visuals/*.png`
 - Politiques entraînées : `Reports/Policies/*.pkl`
 
----
-
-🎓 *Document à intégrer dans votre rapport de soutenance ou slides PowerPoint pour faciliter l’analyse et
-l’interprétation des résultats.*
