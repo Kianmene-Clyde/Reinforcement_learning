@@ -82,7 +82,7 @@ def run_all_agents_all_envs():
                         "mean_score": mean_score,
                         "std_score": std_score,
                         "mean_steps": mean_steps,
-                        "time": elapsed
+                        "time": elapsed,
                     })
 
                 except Exception as e:

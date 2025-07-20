@@ -1,0 +1,16 @@
+env,agent,episodes,gamma,epsilon,max_steps,mean_steps,q_table_csv,heatmap_png
+LineWorld,mc_es,1000,0.95,,100.0,1.373,MC_Results\q_tables\Q_LineWorld_mc_es.csv,MC_Results\heatmaps\heatmap_LineWorld_mc_es.png
+LineWorld,mc_on_policy,1000,0.95,0.1,,2.182,MC_Results\q_tables\Q_LineWorld_mc_on_policy.csv,MC_Results\heatmaps\heatmap_LineWorld_mc_on_policy.png
+LineWorld,mc_off_policy,1000,0.95,,100.0,4.104,MC_Results\q_tables\Q_LineWorld_mc_off_policy.csv,MC_Results\heatmaps\heatmap_LineWorld_mc_off_policy.png
+GridWorld,mc_es,1000,0.95,,100.0,7.15,MC_Results\q_tables\Q_GridWorld_mc_es.csv,MC_Results\heatmaps\heatmap_GridWorld_mc_es.png
+GridWorld,mc_on_policy,1000,0.95,0.1,,9.576,MC_Results\q_tables\Q_GridWorld_mc_on_policy.csv,MC_Results\heatmaps\heatmap_GridWorld_mc_on_policy.png
+GridWorld,mc_off_policy,1000,0.95,,100.0,47.284,MC_Results\q_tables\Q_GridWorld_mc_off_policy.csv,MC_Results\heatmaps\heatmap_GridWorld_mc_off_policy.png
+MontyHallLv1,mc_es,1000,0.95,,100.0,0.984,MC_Results\q_tables\Q_MontyHallLv1_mc_es.csv,MC_Results\heatmaps\heatmap_MontyHallLv1_mc_es.png
+MontyHallLv1,mc_on_policy,1000,0.95,0.1,,2.0,MC_Results\q_tables\Q_MontyHallLv1_mc_on_policy.csv,MC_Results\heatmaps\heatmap_MontyHallLv1_mc_on_policy.png
+MontyHallLv1,mc_off_policy,1000,0.95,,100.0,2.0,MC_Results\q_tables\Q_MontyHallLv1_mc_off_policy.csv,MC_Results\heatmaps\heatmap_MontyHallLv1_mc_off_policy.png
+MontyHallLv2,mc_es,1000,0.95,,100.0,1.037,MC_Results\q_tables\Q_MontyHallLv2_mc_es.csv,MC_Results\heatmaps\heatmap_MontyHallLv2_mc_es.png
+MontyHallLv2,mc_on_policy,1000,0.95,0.1,,2.0,MC_Results\q_tables\Q_MontyHallLv2_mc_on_policy.csv,MC_Results\heatmaps\heatmap_MontyHallLv2_mc_on_policy.png
+MontyHallLv2,mc_off_policy,1000,0.95,,100.0,2.0,MC_Results\q_tables\Q_MontyHallLv2_mc_off_policy.csv,MC_Results\heatmaps\heatmap_MontyHallLv2_mc_off_policy.png
+RPS,mc_es,1000,0.95,,100.0,0.991,MC_Results\q_tables\Q_RPS_mc_es.csv,MC_Results\heatmaps\heatmap_RPS_mc_es.png
+RPS,mc_on_policy,1000,0.95,0.1,,2.0,MC_Results\q_tables\Q_RPS_mc_on_policy.csv,MC_Results\heatmaps\heatmap_RPS_mc_on_policy.png
+RPS,mc_off_policy,1000,0.95,,100.0,2.0,MC_Results\q_tables\Q_RPS_mc_off_policy.csv,MC_Results\heatmaps\heatmap_RPS_mc_off_policy.png
